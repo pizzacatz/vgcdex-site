@@ -341,7 +341,7 @@ const quote = v => /[\s"():<>=!\/]/.test(v) || v === '' ? JSON.stringify(v) : v;
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const ICONS = { name: 'M3 5h18v14H3z M7 9h6 M7 13h10', text: 'M4 5h16 M4 9h16 M4 13h10 M4 17h7', type: 'M20 12l-8 8-8-8 8-8z', ability: 'M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7z', move: 'M5 12h14 M13 6l6 6-6 6', stat: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2', forme: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 8v8 M8 12h8', reg: 'M5 4h14v16H5z M9 4v16 M13 9h3 M13 13h3', match: 'M12 3l9 5-9 5-9-5z M3 13l9 5 9-5', cat: 'M4 6h16 M4 12h16 M4 18h16', crit: 'M9 6h11 M9 12h11 M9 18h11 M4 6h1 M4 12h1 M4 18h1', num: 'M4 7h16 M4 12h16 M4 17h16 M8 4v16 M16 4v16', flag: 'M5 21V4h12l-2 4 2 4H5', target: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z', lb: 'M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z M8 7h7', item: 'M6 8h12l1 12H5z M9 8V6a3 3 0 0 1 6 0v2', pref: 'M14 4l6 6-9 9H5v-6z M12 6l6 6', kinds: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z' };
 const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[k]}"/></svg>`;
-function emptyForm() { return { kinds: new Set(KINDS), name: '', text: '', types: [], typeMode: 'all', abilities: [], moves: [], stats: [{ stat: 'spe', op: '>=', val: '' }], formes: { base: true, mega: true }, regStatus: 'legal', matchups: [{ rel: 'weak', type: '' }], cats: new Set(), crit: [], mnums: [{ stat: 'bp', op: '>=', val: '' }], flags: [], target: 'any', cls: '', lb: '', icats: new Set(), iclass: 'any', view: 'grid', order: '', dir: '', also: [] }; }
+function emptyForm() { return { kinds: new Set(KINDS), name: '', text: '', types: [], typeMode: 'all', abilities: [], moves: [], stats: [{ stat: 'spe', op: '>=', val: '' }], formes: { base: true, mega: true }, regStatus: 'legal', matchups: [{ rel: 'weak', type: '' }], cats: new Set(), crit: [], mnums: [{ stat: 'bp', op: '>=', val: '' }], flags: [], target: 'any', cls: '', lb: '', icats: [], view: 'grid', order: '', dir: '', also: [] }; }
 function buildQuery(fs) {
   const t = []; const tok = (arr, field, q) => arr.forEach(x => t.push((x.neg ? '-' : '') + field + ':' + (q ? quote(x.v) : x.v)));
   const k = [...fs.kinds]; if (k.length === 1) t.push('kind:' + k[0]); else if (k.length === 2 || k.length === 3) t.push('(' + k.map(x => 'kind:' + x).join(' or ') + ')');
@@ -361,8 +361,7 @@ function buildQuery(fs) {
   if (fs.target !== 'any') t.push('target:' + fs.target);
   if (fs.cls) t.push('class:' + quote(fs.cls));
   if (fs.lb.trim()) t.push('lb:' + quote(fs.lb.trim()));
-  const ic = [...fs.icats]; if (ic.length === 1) t.push('cat:' + quote(ic[0])); else if (ic.length > 1) t.push('(' + ic.map(x => 'cat:' + quote(x)).join(' or ') + ')');
-  if (fs.iclass !== 'any') t.push('is:' + fs.iclass);
+  tok(fs.icats, 'cat', true);
   if (fs.order) { t.push('order:' + fs.order); if (fs.dir) t.push('dir:' + fs.dir); }
   return t.concat(fs.also).join(' ');
 }
@@ -381,7 +380,7 @@ function queryToForm(q) {
       const fields = new Set(it.items.map(x => F[x.field] && F[x.field].name)); const vals = it.items.map(x => x.val);
       if (fields.size === 1 && fields.has('kind') && vals.every(v => KINDS.includes(norm(v)))) { fs.kinds = new Set(vals.map(norm)); continue; }
       if (fields.size === 1 && fields.has('t') && vals.every(v => IDX.types.includes(norm(v)))) { vals.forEach(v => fs.types.push({ v: norm(v), neg: false })); fs.typeMode = 'any'; continue; }
-      if (fields.size === 1 && fields.has('cat')) { if (vals.every(isCatVal)) { vals.forEach(v => fs.cats.add(norm(v))); continue; } if (vals.every(v => IDX_ITEM_CATS.map(norm).includes(norm(v)))) { vals.forEach(v => fs.icats.add(IDX_ITEM_CATS.find(c => norm(c) === norm(v)))); continue; } }
+      if (fields.size === 1 && fields.has('cat')) { if (vals.every(isCatVal)) { vals.forEach(v => fs.cats.add(norm(v))); continue; } }
       fs.also.push(astText(it)); continue; }
     const neg = it.type === 'not'; const tm = neg ? it.node : it;
     if (tm.type !== 'term' || !F[tm.field]) { fs.also.push(astText(it)); continue; }
@@ -394,6 +393,7 @@ function queryToForm(q) {
     else if (f === 'flag' && tm.op === ':') fs.flags.push({ v: vn, neg });
     else if (f === 'is' && vn === 'mega') { fs.formes = neg ? { base: true, mega: false } : { base: false, mega: true }; }
     else if (f === 'is' && CRIT_LIST.some(c => c[0] === vn)) fs.crit.push({ v: vn, neg });
+    else if (f === 'cat' && tm.op === ':' && IDX_ITEM_CATS.map(norm).includes(vn)) fs.icats.push({ v: IDX_ITEM_CATS.find(c => norm(c) === vn), neg });
     else if (neg) fs.also.push(astText(it));
     else if (f === 'kind' && KINDS.includes(vn)) fs.kinds = new Set([vn]);
     else if (f === 'name' && tm.op === ':') fs.name = (fs.name + ' ' + v).trim();
@@ -402,7 +402,7 @@ function queryToForm(q) {
     else if (mnumKeys.has(f) && tm.op !== ':') fs.mnums.push({ stat: f, op: tm.op, val: v });
     else if (MATCH_OPTS.some(m => m[0] === f) && tm.op === ':' && IDX.types.includes(vn)) fs.matchups.push({ rel: f, type: vn });
     else if (f === 'cat' && tm.op === ':' && isCatVal(v)) fs.cats.add(vn);
-    else if (f === 'cat' && tm.op === ':' && IDX_ITEM_CATS.map(norm).includes(vn)) fs.icats.add(IDX_ITEM_CATS.find(c => norm(c) === vn));
+    else if (f === 'cat' && tm.op === ':' && IDX_ITEM_CATS.map(norm).includes(vn)) fs.icats.push({ v: IDX_ITEM_CATS.find(c => norm(c) === vn), neg });
     else if (f === 'target' && tm.op === ':' && ['spread', 'single'].includes(vn)) fs.target = vn;
     else if (f === 'class' && tm.op === ':') fs.cls = IDX.classes.find(c => norm(c) === vn) || v;
     else if (f === 'lb' && tm.op === ':') fs.lb = byName('species', v);
@@ -417,7 +417,7 @@ let FS = null;
 // --- controls ---
 const sel = (name, opts, cur, cls) => `<select class="form-input auto ${cls || ''}" data-fs="${name}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
 const cb = (attr, val, label, on) => `<label class="asc"><input type="checkbox" ${attr}="${esc(val)}" ${on ? 'checked' : ''}> ${label}</label>`;
-const TK_META = () => ({ types: { group: 'Types', items: IDX.types.map(t => [t, cap(t)]), placeholder: 'Enter a type or choose from the list' }, abilities: { group: 'Abilities', items: IDX.ents.filter(e => e.kind === 'ability').map(e => [e.name, e.name]), placeholder: 'Enter an ability or choose from the list' }, moves: { group: 'Moves', items: IDX.ents.filter(e => e.kind === 'move').map(e => [e.name, e.name]), placeholder: 'Enter a move or choose from the list' }, flags: { group: 'Flags', items: FLAG_LIST.map(f => [f, f]), placeholder: 'Enter a flag or choose from the list' }, crit: { group: 'Criteria', items: CRIT_LIST.map(([v, l]) => [v, l]), placeholder: 'Enter a criterion or choose from the list' }, species: { group: 'Pokémon', items: IDX.ents.filter(e => e.kind === 'species' && !e.is_mega).map(e => [e.name, e.name]), placeholder: 'Enter a Pokémon, e.g. “Garchomp”' } });
+const TK_META = () => ({ types: { group: 'Types', items: IDX.types.map(t => [t, cap(t)]), placeholder: 'Enter a type or choose from the list' }, abilities: { group: 'Abilities', items: IDX.ents.filter(e => e.kind === 'ability').map(e => [e.name, e.name]), placeholder: 'Enter an ability or choose from the list' }, moves: { group: 'Moves', items: IDX.ents.filter(e => e.kind === 'move').map(e => [e.name, e.name]), placeholder: 'Enter a move or choose from the list' }, flags: { group: 'Flags', items: FLAG_LIST.map(f => [f, f]), placeholder: 'Enter a flag or choose from the list' }, crit: { group: 'Criteria', items: CRIT_LIST.map(([v, l]) => [v, l]), placeholder: 'Enter a criterion or choose from the list' }, species: { group: 'Pokémon', items: IDX.ents.filter(e => e.kind === 'species' && !e.is_mega).map(e => [e.name, e.name]), placeholder: 'Enter a Pokémon, e.g. “Garchomp”' }, icats: { group: 'Item categories', items: IDX_ITEM_CATS.map(c => [c, c]), placeholder: 'Enter a category or choose from the list' } });
 function tokLabel(key, v) { const m = TK_META()[key]; const hit = m.items.find(x => x[0] === v); return hit ? hit[1] : v; }
 function tokens(key) { const fs = FS, m = TK_META()[key]; return `<div class="tok-wrap"><div class="tokens" data-tk="${key}">${fs[key].map((x, i) => `<div class="tok"><button type="button" class="tok-x" data-tx="${key}" data-i="${i}" aria-label="Remove">×</button><button type="button" class="pol ${x.neg ? 'not' : 'is'}" data-pol="${key}" data-i="${i}" title="Toggle include / exclude">${x.neg ? 'NOT' : 'IS'}</button><span class="tok-l">${esc(tokLabel(key, x.v))}</span></div>`).join('')}<input type="text" class="tok-in" data-tkin="${key}" placeholder="${esc(m.placeholder)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div><div class="tok-menu" data-menu="${key}" hidden></div></div>`; }
 function singlePicker(key, fsField, value) { const m = TK_META()[key]; return `<div class="tok-wrap single"><input type="text" class="form-input tok-in" data-fs="${fsField}" data-tkin="${key}" data-single="1" value="${esc(value)}" placeholder="${esc(m.placeholder)}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="tok-menu" data-menu="${key}" hidden></div></div>`; }
@@ -455,7 +455,7 @@ function advForm() {
   ${row('target', 'Target', 'move', band(sel('target', [['any', 'Any target'], ['spread', 'Spread (hits more than one)'], ['single', 'Single target']], fs.target) + sel('cls', [['', 'Any classification'], ...IDX.classes.map(c => [c, c])], fs.cls)), 'Target and Champions Classification.')}
   ${row('lb', 'Learned by', 'move', band(singlePicker('species', 'lb', fs.lb)), 'Only moves this Pokémon can learn.')}
   ${row('crit', 'Criteria', null, band(tokens('crit')), 'Enter any criteria to match, in any order. Click “IS” / “NOT” to include or exclude an item.')}
-  ${row('item', 'Item category', 'item', band(IDX_ITEM_CATS.map(c => cb('data-icat', c, esc(c), fs.icats.has(c))).join(''), 'cbs') + band(sel('iclass', [['any', 'Any class'], ['consumable', 'Consumable'], ['held', 'Held']], fs.iclass)), 'Only return items of the selected categories.', true)}
+  ${row('item', 'Item category', 'item', band(tokens('icats')), 'Berry, Mega Stone, Recovery, Consumable, Held… Every “IS” category must apply; “NOT” excludes.')}
   ${row('pref', 'Preferences', null, band(sel('view', [['grid', 'Display as Grid'], ['list', 'Display as List']], fs.view) + sel('order', SORTS.map(([v, l]) => [v, 'Sort by ' + l]), fs.order) + sel('dir', [['', 'Default order'], ['asc', 'Ascending'], ['desc', 'Descending']], fs.dir)), '')}
   <div class="form-row also" ${fs.also.length ? '' : 'hidden'}><label class="form-row-label short">${icon('crit')} Also</label><div class="form-row-content"><div class="band"><code id="also">${esc(fs.also.join(' '))}</code></div><p class="form-row-tip">Terms from the typed query this form has no control for. They stay in the search.</p></div></div>
   <div class="submit-bar"><code id="qpreview" class="qpreview" title="The query this form will run"></code><button type="button" class="reset-n" id="reset">Reset</button><button type="submit" class="submit-n" id="go">Search with these options</button></div>
@@ -468,7 +468,6 @@ function readForm() {
   for (const el of f.querySelectorAll('[data-fs]')) fs[el.dataset.fs] = el.value;
   fs.formes = { base: !!f.querySelector('[data-forme=base]')?.checked, mega: !!f.querySelector('[data-forme=mega]')?.checked };
   fs.cats = new Set([...f.querySelectorAll('[data-cat]')].filter(x => x.checked).map(x => x.dataset.cat));
-  fs.icats = new Set([...f.querySelectorAll('[data-icat]')].filter(x => x.checked).map(x => x.dataset.icat));
   for (const kind of ['stats', 'mnums']) fs[kind] = [...f.querySelectorAll(`[data-row="${kind}"]`)].map(r => ({ stat: r.querySelector('[data-f=stat]').value, op: r.querySelector('[data-f=op]').value, val: r.querySelector('[data-f=val]').value }));
   fs.matchups = [...f.querySelectorAll('[data-row="matchups"]')].map(r => ({ rel: r.querySelector('[data-f=rel]').value, type: r.querySelector('[data-f=type]').dataset.val || '' }));
   for (const sec of f.querySelectorAll('.form-row[data-sec]')) if (sec.dataset.sec) sec.hidden = !fs.kinds.has(sec.dataset.sec);
@@ -484,6 +483,7 @@ function addToken(key, raw) {
   if (key === 'types') { const t = norm(v); if (!IDX.types.includes(t)) return false; val = t; }
   else if (key === 'flags') { const t = norm(v).replace(/ /g, ''); if (!FLAG_LIST.includes(t)) return false; val = t; }
   else if (key === 'crit') { const c = CRIT_LIST.find(([k, l]) => norm(l) === norm(v) || k === norm(v)); if (!c) return false; val = c[0]; }
+  else if (key === 'icats') { const c = IDX_ITEM_CATS.find(x => norm(x) === norm(v)); if (!c) return false; val = c; }
   else if (key === 'species') { const e = IDX.ents.find(x => x.kind === 'species' && (x.norm === norm(v) || x.compact === compact(v))); val = e ? e.name : v; }
   else if (key === 'abilities' || key === 'moves') { const kind = key === 'abilities' ? 'ability' : 'move'; const e = IDX.ents.find(x => x.kind === kind && (x.norm === norm(v) || x.compact === compact(v))); val = e ? e.name : v; }
   if (FS[key].some(x => x.v === val)) return true;
