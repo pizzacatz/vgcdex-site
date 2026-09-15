@@ -2,12 +2,15 @@
 
 **Built output only. Do not edit by hand.**
 
-This public repository is the GitHub Pages deploy target for
-[vgcdex.com](https://vgcdex.com) — VGC Dex, a search engine for Pokémon
-Champions. Its contents are produced by the build in the private
-`vgcdex-search` repository and force-pushed here by a GitHub Action; any
-manual change will be overwritten on the next deploy.
+This public repository is the GitHub Pages deploy target for VGC Dex, a
+search engine for Pokémon Champions. Currently serving the **prototype**
+at https://pizzacatz.github.io/vgcdex-site/ ; the custom domain
+(vgcdex.com) is bound later.
 
-- Source, spec and issues: `pizzacatz/vgcdex-search` (private).
-- Data: the champions-logic dataset, revision shown in the site footer.
-- Artwork and data attribution: see `/about` once the site is live.
+Contents come from the private `pizzacatz/vgcdex-search` repository
+(`prototype/` today, the `apps/web` build later) and are pushed here
+wholesale; any manual change is overwritten on the next deploy.
+
+- Data: `data/m-c.json` = champions-logic `dist/champions-logic.json` (revision in the site footer).
+- Sprites: `sprites/menu`, `sprites/items` vendored from champions-logic.
+- Pokémon and all related names are © Nintendo / Creatures Inc. / GAME FREAK. Fan project, not affiliated.

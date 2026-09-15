@@ -4,23 +4,71 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VGC Dex</title>
-<meta name="description" content="VGC Dex — a fast, typed search engine for Pokémon Champions. Coming soon.">
-<link rel="canonical" href="https://vgcdex.com/">
+<meta name="description" content="VGC Dex — a typed, shareable search engine for Pokémon Champions.">
 <style>
-  :root { color-scheme: light dark; --fg: #1a1a1a; --muted: #666; --bg: #fafafa; --accent: #2b6cb0; }
-  @media (prefers-color-scheme: dark) { :root { --fg: #ececec; --muted: #9a9a9a; --bg: #121212; --accent: #7fb3ff; } }
-  html, body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { min-height: 100vh; display: grid; place-content: center; text-align: center; padding: 24px; }
-  h1 { font-size: 2.4rem; margin: 0 0 8px; letter-spacing: -0.02em; }
-  p { margin: 0; color: var(--muted); }
-  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); }
+:root{color-scheme:light dark;--fg:#1a1a1a;--muted:#6b6b6b;--bg:#fafafa;--card:#fff;--line:#e3e3e3;--accent:#2b6cb0;--err:#b42318;--errbg:#fdecea;--warnbg:#fff8e1;--hl:#eef4fb}
+@media (prefers-color-scheme:dark){:root{--fg:#ececec;--muted:#9a9a9a;--bg:#121212;--card:#1c1c1c;--line:#2c2c2c;--accent:#7fb3ff;--err:#ff8a80;--errbg:#3a1f1d;--warnbg:#3a3419;--hl:#1e2a3a}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);padding:12px 16px}
+.wrap{max-width:1040px;margin:0 auto}
+.brand{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}.brand h1{font-size:1.25rem;margin:0;letter-spacing:-.01em}.brand small{color:var(--muted)}
+.brand .proto{margin-left:auto;font-size:.75rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+.searchrow{display:flex;gap:8px}
+#q{flex:1;font:inherit;font-size:1.05rem;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+#q:focus{outline:2px solid var(--accent);border-color:transparent}
+button{font:inherit;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+#status{margin-top:8px;font-size:.85rem;color:var(--muted);min-height:1.3em}
+#status.err{color:var(--err)}
+.errbox{background:var(--errbox,var(--errbg));border:1px solid var(--err);border-radius:8px;padding:10px 12px;margin:12px 0;font-size:.9rem}
+.errbox code{font-family:ui-monospace,Menlo,monospace}
+.zero{background:var(--warnbg);border:1px solid var(--line);border-radius:8px;padding:12px;margin:12px 0}
+main{padding:12px 16px 40px}
+.layout{display:grid;grid-template-columns:1fr 300px;gap:20px}
+@media (max-width:820px){.layout{grid-template-columns:1fr}aside{order:-1}}
+.group h2{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:8px 12px 8px 8px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:6px;cursor:pointer}
+.row:hover{background:var(--hl)}
+.row.open{background:var(--hl)}
+.thumb{width:44px;height:44px;display:grid;place-items:center;border-radius:8px;background:var(--bg);overflow:hidden}
+.thumb img{max-width:44px;max-height:44px;image-rendering:pixelated}
+.thumb .letter{font-weight:700;color:var(--muted)}
+.name{font-weight:600;font-size:1rem}.name .badge{font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:999px;border:1px solid var(--line);margin-left:6px;vertical-align:middle;color:var(--muted)}
+.sub{font-size:.82rem;color:var(--muted);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip{font-size:.66rem;font-weight:700;padding:2px 7px;border-radius:999px;color:#fff;text-transform:uppercase;letter-spacing:.03em}
+.chip.neutral{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:600;text-transform:none}
+.stats{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;color:var(--muted);text-align:right;white-space:nowrap}
+.detail{border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px;background:var(--card);margin:-7px 0 8px;padding:12px 14px;font-size:.9rem}
+.detail table{border-collapse:collapse;font-family:ui-monospace,Menlo,monospace;font-size:.8rem;margin:6px 0}
+.detail td,.detail th{padding:2px 8px;text-align:right;border-bottom:1px solid var(--line)}.detail th{color:var(--muted);font-weight:600}
+.detail .moves a{display:inline-block;margin:2px 6px 2px 0;font-size:.85rem}
+.detail p{margin:6px 0}
+aside{font-size:.88rem}
+aside h3{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+aside .ex{display:block;font-family:ui-monospace,Menlo,monospace;font-size:.82rem;padding:5px 8px;border:1px solid var(--line);border-radius:6px;margin-bottom:4px;background:var(--card)}
+aside .ex:hover{background:var(--hl);text-decoration:none}
+aside .ex small{display:block;font-family:system-ui,sans-serif;color:var(--muted);font-size:.75rem}
+aside table{border-collapse:collapse;width:100%;font-size:.8rem}aside td{padding:2px 4px;vertical-align:top;border-bottom:1px solid var(--line)}aside td:first-child{font-family:ui-monospace,Menlo,monospace;white-space:nowrap;color:var(--accent)}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:.78rem;padding:16px;text-align:center}
+.type-normal{background:#9aa27a}.type-fire{background:#e8641b}.type-water{background:#3a7bd5}.type-electric{background:#e2b400;color:#222}.type-grass{background:#5aa843}.type-ice{background:#5fc4c8;color:#123}.type-fighting{background:#b8332f}.type-poison{background:#8c3f9a}.type-ground{background:#c9a24a;color:#222}.type-flying{background:#8a7fd8}.type-psychic{background:#e8558a}.type-bug{background:#8ea623;color:#222}.type-rock{background:#a89050}.type-ghost{background:#5e4f8f}.type-dragon{background:#5a3fd0}.type-dark{background:#4e3f34}.type-steel{background:#8f8fa8}.type-fairy{background:#e58fd0;color:#222}
+.cat-physical{background:#c0392b}.cat-special{background:#5b6abf}.cat-status{background:#7f8c8d}
 </style>
 </head>
 <body>
-<main>
-  <h1>VGC Dex</h1>
-  <p>A typed, shareable search engine for Pokémon Champions.</p>
-  <p>Coming soon. Try <code>t:steel spe&gt;=100</code> when it's live.</p>
-</main>
+<header><div class="wrap">
+  <div class="brand"><h1>VGC Dex</h1><small id="reg">Pokémon Champions</small><span class="proto">prototype</span></div>
+  <form class="searchrow" id="form" autocomplete="off">
+    <input id="q" type="text" placeholder='t:steel spe>=100 m:"iron head"' spellcheck="false" autofocus>
+    <button type="submit">Search</button>
+  </form>
+  <div id="status"></div>
+</div></header>
+<main><div class="wrap layout">
+  <section id="results"></section>
+  <aside id="help"></aside>
+</div></main>
+<footer id="foot"></footer>
+<script src="app.js"></script>
 </body>
 </html>
