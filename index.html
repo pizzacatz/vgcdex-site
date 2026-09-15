@@ -101,13 +101,14 @@ dl.eff{display:grid;grid-template-columns:80px 1fr;gap:6px 10px;margin:0;align-i
 .form-row-label{width:18%;min-width:180px;height:48px;display:flex;align-items:center;font-size:16px;font-weight:300;line-height:20px;padding:0 8px 0 0;margin:0;color:var(--text)}
 .form-row-label.short{height:36px}.form-row-label svg{width:18px;height:18px;margin:0 7px 0 0;flex:none;color:var(--muted)}
 .form-row-content{width:80%;max-width:100%;display:flex;flex-flow:column nowrap;align-items:flex-start}
-.band{max-width:100%;width:100%;display:flex;flex-flow:row wrap;align-items:center;padding:5px 0}
+.band{max-width:100%;width:100%;display:flex;flex-flow:column nowrap;align-items:flex-start;gap:6px;padding:5px 0}.band.cbs{flex-flow:row wrap;align-items:center;gap:0}
+.band .form-input.small-select,.band .form-input.medium-select,[data-row=matchups] select[data-f=rel]{max-width:100%;margin-right:0;min-width:240px}.band .form-input.auto{min-width:240px}.dup{padding:4px 0 10px}.dup+.dup{border-top:1px dashed var(--line);padding-top:10px}.pillsel{margin:0}
 .form-row-tip{width:100%;margin:2px 0 0;font-size:12px;color:var(--muted);font-style:italic;max-width:620px;line-height:1.5}
 .form-input{font:inherit;background:var(--field);border-radius:2px;border:1px solid var(--field-line);color:var(--text);font-size:16px;height:38px;line-height:20px;padding:8px 10px;transition:background-color 60ms linear,border-color 60ms linear,box-shadow 60ms linear;width:50%;min-width:240px;max-width:420px}
 .form-input:focus{outline:none;box-shadow:0 0 3px var(--field-line);border-color:var(--accent)}
 select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-size:14px;background-position:right 8px center}
 .form-input.auto{width:auto;min-width:0}
-.form-input.small-select,.band .small-select{max-width:32%;margin-right:1%}.dup select[data-f=stat]{max-width:26%}.dup select[data-f=op]{max-width:38%}
+.form-input.small-select,.band .small-select{max-width:32%;margin-right:1%}
 .form-input.medium-select{max-width:40%;margin-right:1%}
 .band .form-input.auto+.form-input.auto{margin-left:0}
 .band>select.form-input.auto{margin-right:1%}
