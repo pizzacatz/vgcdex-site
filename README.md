@@ -12,5 +12,5 @@ Contents come from the private `pizzacatz/vgcdex-search` repository
 wholesale; any manual change is overwritten on the next deploy.
 
 - Data: `data/m-c.json` = champions-logic `dist/champions-logic.json` (revision in the site footer).
-- Sprites: `sprites/menu`, `sprites/items` vendored from champions-logic.
+- Sprites: `sprites/menu`, `sprites/species`, `sprites/items` vendored from champions-logic.
 - Pokémon and all related names are © Nintendo / Creatures Inc. / GAME FREAK. Fan project, not affiliated.

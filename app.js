@@ -23,7 +23,7 @@ function buildIndex(d) {
     const row = { kind: 'species', slug: s.slug, name: s.name, raw: s, is_mega: false, types: s.types,
       abilities: s.abilities.map(a => a.name), abilitySlugs: s.abilities.map(a => a.slug), learnset: s.learnset || [],
       ps: s.presented_stats, bs: s.base_stats, bst: STATS.reduce((n, k) => n + s.base_stats[k], 0),
-      dex: s.national_dex, kg: s.weight_kg, sprite: s.sprites && s.sprites.menu, eff: effOf(s.types) };
+      dex: s.national_dex, kg: s.weight_kg, sprite: s.sprites && s.sprites.menu, art: s.sprites && s.sprites.front, eff: effOf(s.types) };
     speciesBySlug[s.slug] = row; ents.push(row);
   }
   for (const m of d.mega_evolutions) {
@@ -31,7 +31,7 @@ function buildIndex(d) {
     ents.push({ kind: 'species', slug: m.slug, name: m.name, raw: m, is_mega: true, base_slug: m.base_slug, stone: m.mega_stone,
       types: m.types, abilities: [m.ability.name], abilitySlugs: [m.ability.slug], learnset: base ? base.learnset : [],
       ps: m.presented_stats, bs: m.base_stats, bst: STATS.reduce((n, k) => n + m.base_stats[k], 0),
-      dex: base ? base.dex : null, kg: m.weight_kg, sprite: m.sprites && m.sprites.menu, eff: effOf(m.types) });
+      dex: base ? base.dex : null, kg: m.weight_kg, sprite: m.sprites && m.sprites.menu, art: m.sprites && m.sprites.front, eff: effOf(m.types) });
   }
   const moveBySlug = {};
   for (const m of d.moves) { const r = { kind: 'move', slug: m.slug, name: m.name, raw: m, type: m.type, cat: m.category, bp: m.power || 0,
@@ -152,7 +152,7 @@ function validate(node, idx, directives) {
   if (node.type === 'not') return validate(node.node, idx, directives);
   if (node.type === 'and') { let sc = new Set(KINDS); const per = [];
     for (const it of node.items) { const s = validate(it, idx, directives); if (it.type === 'term' && F[it.field] && F[it.field].type === 'directive') continue; per.push([it, s]); sc = new Set([...sc].filter(k => s.has(k))); }
-    if (!sc.size) { const named = per.filter(([it, s]) => s.size < KINDS.length).map(([it, s]) => `"${it.field || it.v}" (${[...s].join('/')})`); throw new QueryError('semantic', `These terms can't apply to the same kind of result: ${named.join(', ')}`, node.items[0].span); }
+    if (!sc.size) { const named = per.filter(([it, s]) => s.size < KINDS.length).map(([it, s]) => `"${it.field || it.v}" (${[...s].join('/')})`); throw new QueryError('semantic', `These terms can't apply to the same kind of result: ${named.join(', ')}`, [node.items[0].span[0], node.items[node.items.length - 1].span[1]]); }
     return sc; }
   if (node.type === 'or') { let sc = new Set(); for (const it of node.items) for (const k of validate(it, idx, directives)) sc.add(k); return sc; }
   // term
@@ -213,87 +213,145 @@ function search(idx, q) {
   return { scope: [...scope], results: out, ast, order, dir };
 }
 
-// ---------- UI ----------
+// ---------- UI (Scryfall-style layout on GeorgiaPlayEvents tokens) ----------
 const $ = s => document.querySelector(s);
-const qEl = $('#q'), statusEl = $('#status'), resEl = $('#results');
-let openSlug = null;
-function typeChip(t) { return `<span class="chip type-${t}">${t}</span>`; }
-function link(q) { return `?q=${encodeURIComponent(q)}`; }
-function row(e) {
-  let thumb, sub = '', chips = '', stats = '', badge = '';
-  if (e.kind === 'species') { thumb = e.sprite ? `<img src="${e.sprite}" alt="" loading="lazy">` : `<span class="letter">${e.name[0]}</span>`; chips = e.types.map(typeChip).join('') + e.abilities.map(a => `<span class="chip neutral">${esc(a)}</span>`).join('');
-    stats = STATS.map(k => `${k.toUpperCase()} ${e.ps[k]}`).join(' · '); if (e.is_mega) badge = '<span class="badge">Mega</span>'; sub = `#${e.dex ?? '—'} · BST ${e.bst}`; }
-  else if (e.kind === 'move') { thumb = `<span class="letter">M</span>`; chips = typeChip(e.type) + `<span class="chip cat-${e.cat}">${e.cat}</span>` + e.classes.map(c => `<span class="chip neutral">${esc(c)}</span>`).join(''); sub = esc(e.raw.short_desc || ''); stats = `BP ${e.bp || '—'} · Acc ${e.acc ?? '—'} · PP ${e.pp} · Prio ${e.prio}`; }
-  else if (e.kind === 'ability') { thumb = `<span class="letter">A</span>`; sub = esc(e.raw.short_desc || ''); }
-  else { thumb = e.sprite ? `<img src="${e.sprite}" alt="" loading="lazy">` : `<span class="letter">I</span>`; chips = e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join(''); sub = esc(e.raw.short_desc || e.raw.description || ''); }
-  const open = openSlug === e.kind + ':' + e.slug;
-  return `<div class="row${open ? ' open' : ''}" data-key="${e.kind}:${e.slug}"><div class="thumb">${thumb}</div><div><div class="name">${esc(e.name)}${badge}</div>${chips ? `<div class="chips">${chips}</div>` : ''}${sub ? `<div class="sub">${sub}</div>` : ''}</div><div class="stats">${stats}</div></div>${open ? detail(e) : ''}`;
-}
-function detail(e) {
-  const idx = IDX;
-  if (e.kind === 'species') {
-    const tbl = `<table><tr><th></th>${STATS.map(k => `<th>${k.toUpperCase()}</th>`).join('')}<th>Total</th></tr><tr><th>Presented</th>${STATS.map(k => `<td>${e.ps[k]}</td>`).join('')}<td>${STATS.reduce((n, k) => n + e.ps[k], 0)}</td></tr><tr><th>Base</th>${STATS.map(k => `<td>${e.bs[k]}</td>`).join('')}<td>${e.bst}</td></tr></table>`;
-    const weak = idx.types.filter(t => e.eff[t] >= 2), res = idx.types.filter(t => e.eff[t] > 0 && e.eff[t] < 1), imm = idx.types.filter(t => e.eff[t] === 0);
-    const moves = e.learnset.map(s => idx.moveBySlug[s]).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name)).map(m => `<a href="${link('name=' + JSON.stringify(m.name))}">${esc(m.name)}</a>`).join('');
-    const megas = idx.ents.filter(x => x.is_mega && x.base_slug === e.slug).map(x => `<a href="${link('name=' + JSON.stringify(x.name))}">${esc(x.name)}</a>`).join(' · ');
-    return `<div class="detail">${tbl}<p><b>Abilities:</b> ${e.abilities.map(a => `<a href="${link('a:' + JSON.stringify(a))}">${esc(a)}</a>`).join(', ')}${e.stone ? ` · <b>Stone:</b> ${esc(e.stone)}` : ''}${e.base_slug ? ` · <b>Base:</b> <a href="${link('name=' + e.base_slug)}">${esc(idx.speciesBySlug[e.base_slug]?.name || e.base_slug)}</a>` : ''}${megas ? ` · <b>Megas:</b> ${megas}` : ''}</p>
-      <p><b>Weak:</b> ${weak.map(t => typeChip(t) + (e.eff[t] === 4 ? '<small>×4</small>' : '')).join(' ') || '—'} &nbsp; <b>Resists:</b> ${res.map(t => typeChip(t) + (e.eff[t] === 0.25 ? '<small>×¼</small>' : '')).join(' ') || '—'} &nbsp; <b>Immune:</b> ${imm.map(typeChip).join(' ') || '—'} <small>(type chart only)</small></p>
-      <p><b>Learnset (${e.learnset.length}):</b></p><div class="moves">${moves}</div>
-      <p><small>Find species that learn a move: click it, then change <code>name=</code> to <code>m:</code>. Weight ${e.kg} kg.</small></p></div>`;
-  }
-  if (e.kind === 'move') { const lb = (idx.learnedBy[e.slug] || []).filter(s => !s.is_mega); return `<div class="detail"><p>${esc(e.raw.long_desc || e.raw.short_desc || '')}</p><p><b>Target:</b> ${esc(e.target)} · <b>Flags:</b> ${e.flags.map(f => `<a href="${link('flag:' + f)}">${f}</a>`).join(', ') || '—'}${e.variable ? ' · variable power' : ''}</p><p><b>Learned by (${lb.length}):</b> <a href="${link('m=' + JSON.stringify(e.name))}">show as species search</a></p><div class="moves">${lb.map(s => `<a href="${link('name=' + JSON.stringify(s.name))}">${esc(s.name)}</a>`).join('')}</div></div>`; }
-  if (e.kind === 'ability') { const holders = idx.ents.filter(x => x.kind === 'species' && x.abilitySlugs.includes(e.slug)); return `<div class="detail"><p>${esc(e.raw.long_desc || '')}</p><p><b>Species with it (${holders.length}):</b> <a href="${link('a=' + JSON.stringify(e.name))}">show as species search</a></p><div class="moves">${holders.map(s => `<a href="${link('name=' + JSON.stringify(s.name))}">${esc(s.name)}</a>`).join('')}</div></div>`; }
-  return `<div class="detail"><p>${esc(e.raw.long_desc || e.raw.description || '')}</p><p><b>Categories:</b> ${e.cats.map(c => `<a href="${link('cat:' + JSON.stringify(c))}">${esc(c)}</a>`).join(', ')}</p></div>`;
-}
-function render(q) {
-  qEl.value = q; statusEl.className = ''; resEl.innerHTML = '';
-  if (!q.trim()) { statusEl.textContent = 'Type a query — or click an example on the right.'; return; }
-  let r;
-  try { r = search(IDX, q); }
-  catch (err) { if (!(err instanceof QueryError)) throw err; statusEl.className = 'err'; statusEl.textContent = (err.kind === 'syntax' ? 'Syntax error' : 'Scope error');
-    const [s, e] = err.span || [0, 0]; const marked = esc(q.slice(0, s)) + '<mark>' + esc(q.slice(s, e) || ' ') + '</mark>' + esc(q.slice(e));
-    resEl.innerHTML = `<div class="errbox"><b>${err.kind === 'syntax' ? 'Syntax error' : 'Semantic error'}:</b> ${esc(err.message)}<br><code>${marked}</code>${err.kind === 'semantic' ? '<br><small>Add <code>kind:species</code> or <code>kind:move</code>, or split into two searches.</small>' : ''}</div>`; return; }
-  const scopeTxt = r.scope.length === 4 ? 'all kinds' : r.scope.join(' + ');
-  statusEl.textContent = `${r.results.length} result${r.results.length === 1 ? '' : 's'} · scope: ${scopeTxt}${r.order ? ` · order: ${r.order} ${r.dir}` : ''}`;
-  if (!r.results.length) { resEl.innerHTML = `<div class="zero"><b>No matches.</b> The query parsed fine and was searched across <b>${scopeTxt}</b>. Tips: bare words match names only (use <code>o:</code> for descriptions); stats are presented values (<code>bspe</code> for base); <code>m:</code> needs the move name, e.g. <code>m:"iron head"</code>.</div>`; return; }
-  const groups = {}; for (const e of r.results) (groups[e.kind] ||= []).push(e);
-  const kinds = r.order ? [null] : KINDS;
-  let html = '';
-  if (r.order) html = r.results.slice(0, 300).map(row).join('');
-  else for (const k of KINDS) if (groups[k]) html += `<div class="group"><h2>${k === 'species' ? 'Pokémon' : k === 'move' ? 'Moves' : k === 'ability' ? 'Abilities' : 'Items'} · ${groups[k].length}</h2>${groups[k].slice(0, 200).map(row).join('')}${groups[k].length > 200 ? `<p class="sub">…${groups[k].length - 200} more (narrow the query)</p>` : ''}</div>`;
-  resEl.innerHTML = html;
-}
-function go(q, push = true) { if (push) history.pushState(null, '', q ? link(q) : location.pathname); render(q); }
-$('#form').addEventListener('submit', ev => { ev.preventDefault(); openSlug = null; go(qEl.value); });
-resEl.addEventListener('click', ev => { const a = ev.target.closest('a'); if (a && a.getAttribute('href')?.startsWith('?q=')) { ev.preventDefault(); openSlug = null; go(decodeURIComponent(a.getAttribute('href').slice(3))); return; }
-  const r = ev.target.closest('.row'); if (!r) return; const key = r.dataset.key; openSlug = openSlug === key ? null : key; render(qEl.value); });
-document.addEventListener('click', ev => { const a = ev.target.closest('aside a.ex'); if (!a) return; ev.preventDefault(); openSlug = null; go(a.dataset.q); qEl.focus(); });
-window.addEventListener('popstate', () => { openSlug = null; render(new URLSearchParams(location.search).get('q') || ''); });
+const app = $('#app');
+const STAT_LABEL = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
+const KIND_LABEL = { species: 'Pokémon', move: 'Moves', ability: 'Abilities', item: 'Items' };
+const ICON = `<svg viewBox="0 0 1024 1024" aria-hidden="true"><clipPath id="r"><rect width="1024" height="1024" rx="180"/></clipPath><g clip-path="url(#r)"><rect width="1024" height="1024" fill="#1A110E"/><path d="M 0 0 L 1024 0 L 0 1024 Z" fill="#FFF8F6"/><line x1="0" y1="1024" x2="1024" y2="0" stroke="#FFDAD2" stroke-width="100"/></g><circle cx="512" cy="512" r="220" fill="#73332A" stroke="#FFDAD2" stroke-width="100"/></svg>`;
+const typeChip = t => `<span class="chip type-${t}">${t}</span>`;
+const catChip = c => `<span class="chip cat-${c}">${c}</span>`;
+const qlink = q => `?q=${encodeURIComponent(q)}`;
+const plink = e => `?${e.kind}=${encodeURIComponent(e.slug)}`;
+const nameTerm = e => `name=${JSON.stringify(e.name)}`;
+function state() { const p = new URLSearchParams(location.search); const o = { q: p.get('q') || '', view: p.get('view') || 'grid', guide: p.has('guide') }; for (const k of KINDS) if (p.get(k)) o.detail = { kind: k, slug: p.get(k) }; return o; }
+function nav(qs, replace) { history[replace ? 'replaceState' : 'pushState'](null, '', qs || location.pathname); render(); window.scrollTo(0, 0); }
+function setParam(k, v) { const p = new URLSearchParams(location.search); if (v == null || v === '') p.delete(k); else p.set(k, v); return '?' + p.toString(); }
 
+// ----- shell -----
+function header(st) {
+  const compact = !!(st.q || st.detail || st.guide);
+  return `<header class="top"><div class="wrap top-in">
+    <a class="brand" href="./" data-nav><span class="icon">${ICON}</span><span class="word">VGC Dex</span></a>
+    ${compact ? `<form class="topsearch" id="form"><input id="q" type="search" value="${esc(st.q)}" placeholder='Search Pokémon, moves, abilities, items…' spellcheck="false" autocomplete="off"><button type="submit" aria-label="Search">⌕</button></form>` : ''}
+    <nav class="topnav"><a href="?guide=1" data-nav>Syntax</a><a href="#" id="random">Random</a><span class="reg">${esc(IDX.meta.regulation.regulation)}</span><button id="theme" title="Toggle theme" aria-label="Toggle theme">◐</button></nav>
+  </div></header>`;
+}
+function footer() { const m = IDX.meta; return `<footer class="foot"><div class="wrap">
+  <div class="foot-grid"><div><b>VGC Dex</b><br>A typed, shareable search engine for Pokémon Champions.<br><span class="proto">prototype</span></div>
+  <div><b>Data</b><br>champions-logic ${esc(m.data_version)}<br>revision <code>${esc(m.data_revision)}</code><br>Regulation ${esc(m.regulation.regulation)} · ${esc(m.regulation.active_from)} → ${esc(m.regulation.active_to)}</div>
+  <div><b>Credits</b><br>Dex data via Pokémon Showdown (MIT) and Serebii · sprites via Bulbagarden Archives and Serebii.<br>Pokémon and all related names are © Nintendo / Creatures Inc. / GAME FREAK. Fan project, not affiliated.</div></div>
+</div></footer>`; }
+
+// ----- home -----
 const EXAMPLES = [
-  ['t:steel spe>=100', 'fast Steel types (presented Speed)'], ['m:"iron head" m:"knock off"', 'learns both moves'], ['m:/^(u-turn|volt switch|flip turn)$/', 'any pivot move (regex)'],
-  ['a:intimidate or a:prankster', 'either ability'], ['weak:fairy -resists:steel', 'Fairy-weak, no Steel resist'], ['immune:ground is:mega', 'Mega formes immune to Ground'],
-  ['t:fire bp>=80 cat:special flag:protect', 'special Fire moves'], ['prio>0 -cat:status order:bp', 'damaging priority, by power'], ['o:/flinch/ kind:move', 'moves whose text says flinch'],
-  ['o:/heals?|restores?/ kind:ability', 'healing abilities'], ['cat:berry o:/hp/', 'berries mentioning HP'], ['for:garchomp', 'Garchomp\'s Mega Stones'], ['lb:garchomp t:ground bp>=90', 'Ground moves Garchomp learns'],
-  ['bst>=600 -is:mega order:spe', 'non-Mega 600 BST by Speed'], ['t:fire spe>100 bp>=80', 'scope error (on purpose)']];
-function renderHelp() {
-  $('#help').innerHTML = `<h3>Try</h3>${EXAMPLES.map(([q, why]) => `<a class="ex" href="${link(q)}" data-q="${esc(q)}">${esc(q)}<small>${esc(why)}</small></a>`).join('')}
-  <h3>Syntax</h3><table>
-  <tr><td>word</td><td>name match, all kinds</td></tr><tr><td>a b</td><td>AND</td></tr><tr><td>a or b</td><td>OR (lower precedence)</td></tr><tr><td>-a</td><td>NOT</td></tr><tr><td>( … )</td><td>group</td></tr><tr><td>"iron head"</td><td>quote spaces</td></tr><tr><td>o:/re/</td><td>regex (text fields)</td></tr>
-  <tr><td>: = != &lt; &lt;= &gt; &gt;=</td><td>operators</td></tr></table>
-  <h3>Pokémon</h3><table><tr><td>t: a: m:</td><td>type, ability, learns move</td></tr><tr><td>hp atk def spa spd spe</td><td>presented stats</td></tr><tr><td>bhp … bspe, bst</td><td>base stats, base total</td></tr><tr><td>weak: resists: immune:</td><td>type chart only</td></tr><tr><td>is:mega stone: base:</td><td>Mega formes</td></tr><tr><td>dex: kg: abilities:</td><td>number, weight, count</td></tr></table>
-  <h3>Moves</h3><table><tr><td>t: cat: bp: acc: pp: prio:</td><td>type, physical/special/status, numbers</td></tr><tr><td>flag: target: class:</td><td>contact/sound/…, spread/single, Classification</td></tr><tr><td>lb:</td><td>learned by species</td></tr><tr><td>is:spread is:variable</td><td>flags</td></tr></table>
-  <h3>Abilities · Items</h3><table><tr><td>o:</td><td>description text</td></tr><tr><td>cat:</td><td>item category (berry, mega stone, …)</td></tr><tr><td>for:</td><td>Mega Stone for a species</td></tr><tr><td>is:consumable is:held</td><td>item class</td></tr></table>
-  <h3>Scope & sort</h3><table><tr><td>kind: is:</td><td>species / move / ability / item</td></tr><tr><td>order: dir:</td><td>spe, bp, name, dex, bst… asc/desc</td></tr></table>
-  <p><small>Scope is the intersection of the kinds your fields apply to; if it's empty you get an error, not an empty list. Regulation history (<code>r:</code>, <code>new:</code>, <code>removed:</code>) is not in this prototype.</small></p>`;
+  ['t:steel spe>=100', 'Fast Steel types'], ['m:"iron head" m:"knock off"', 'Learns both moves'], ['m:/^(u-turn|volt switch|flip turn)$/', 'Any pivot move (regex)'],
+  ['a:intimidate or a:prankster', 'Either ability'], ['weak:fairy -resists:steel', 'Fairy-weak, no Steel resist'], ['immune:ground is:mega', 'Megas immune to Ground'],
+  ['t:fire bp>=80 cat:special', 'Special Fire moves'], ['prio>0 -cat:status order:bp', 'Damaging priority, by power'], ['o:/flinch/ kind:move', 'Moves whose text says flinch'],
+  ['o:/heals?|restores?/ kind:ability', 'Healing abilities'], ['cat:berry o:/hp/', 'Berries mentioning HP'], ['bst>=600 -is:mega order:spe', '600-BST non-Megas by Speed']];
+function home() {
+  const c = IDX.meta; const n = k => IDX.ents.filter(e => e.kind === k).length;
+  return `<section class="hero"><div class="wrap">
+    <div class="hero-icon">${ICON}</div>
+    <h1 class="hero-title">VGC Dex</h1>
+    <p class="hero-sub">Search every Pokémon, move, ability and item in Pokémon Champions.</p>
+    <form class="herosearch" id="form"><input id="q" type="search" placeholder='Try  t:steel spe>=100  or  "iron head"' spellcheck="false" autocomplete="off" autofocus><button type="submit">Search</button></form>
+    <p class="hero-links"><a href="?guide=1" data-nav>Syntax guide</a> · <a href="#" id="random2">Random Pokémon</a> · Regulation ${esc(c.regulation.regulation)}: ${n('species') - IDX.ents.filter(e => e.is_mega).length} Pokémon, ${IDX.ents.filter(e => e.is_mega).length} Megas, ${n('move')} moves, ${n('ability')} abilities, ${n('item')} items</p>
+  </div></section>
+  <section class="wrap examples"><h2>Try a search</h2><div class="ex-grid">${EXAMPLES.map(([q, why]) => `<a class="ex" href="${qlink(q)}" data-nav><code>${esc(q)}</code><span>${esc(why)}</span></a>`).join('')}</div>
+  <div class="how"><div><b>Fields</b><br><code>t:</code> type · <code>a:</code> ability · <code>m:</code> learns move · <code>spe>=100</code> presented stats · <code>bspe</code> base · <code>bp:</code> <code>prio:</code> <code>flag:</code> for moves · <code>o:</code> description text</div><div><b>Combine</b><br>Terms AND by default · <code>or</code> · <code>-</code> to exclude · parentheses · quotes for spaces · <code>/regex/</code> on text</div><div><b>Share</b><br>Every search is a link. Stats are the in-game presented numbers. Type-chart fields ignore abilities.</div></div></section>`;
 }
 
+// ----- results -----
+function statRow(e) { return `<span class="statrow">${STATS.map(k => `<b>${STAT_LABEL[k]}</b>${e.ps[k]}`).join('')}</span>`; }
+function speciesCard(e) { return `<a class="card" href="${plink(e)}" data-nav><div class="art">${e.art ? `<img src="${e.art}" alt="" loading="lazy">` : ''}${e.is_mega ? '<span class="mega">Mega</span>' : ''}</div><div class="card-body"><div class="card-name">${esc(e.name)}</div><div class="chips">${e.types.map(typeChip).join('')}</div>${statRow(e)}</div></a>`; }
+function speciesTable(rows) { return `<div class="tablewrap"><table class="list"><thead><tr><th></th><th>Name</th><th>Type</th>${STATS.map(k => `<th class="num">${STAT_LABEL[k]}</th>`).join('')}<th class="num">BST</th><th>Abilities</th></tr></thead><tbody>${rows.map(e => `<tr><td class="thumb"><img src="${e.sprite}" alt="" loading="lazy"></td><td><a href="${plink(e)}" data-nav>${esc(e.name)}</a>${e.is_mega ? ' <span class="badge">Mega</span>' : ''}</td><td>${e.types.map(typeChip).join(' ')}</td>${STATS.map(k => `<td class="num">${e.ps[k]}</td>`).join('')}<td class="num">${e.bst}</td><td class="muted">${e.abilities.map(esc).join(', ')}</td></tr>`).join('')}</tbody></table></div>`; }
+function moveTable(rows) { return `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Type</th><th>Cat</th><th class="num">BP</th><th class="num">Acc</th><th class="num">PP</th><th class="num">Prio</th><th>Effect</th></tr></thead><tbody>${rows.map(e => `<tr><td><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td>${typeChip(e.type)}</td><td>${catChip(e.cat)}</td><td class="num">${e.bp || '—'}</td><td class="num">${e.acc ?? '—'}</td><td class="num">${e.pp}</td><td class="num">${e.prio > 0 ? '+' : ''}${e.prio}</td><td class="muted">${esc(e.raw.short_desc || '')}</td></tr>`).join('')}</tbody></table></div>`; }
+function abilityTable(rows) { return `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Effect</th><th class="num">Pokémon</th></tr></thead><tbody>${rows.map(e => `<tr><td><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td class="muted">${esc(e.raw.short_desc || '')}</td><td class="num">${IDX.ents.filter(x => x.kind === 'species' && x.abilitySlugs.includes(e.slug)).length}</td></tr>`).join('')}</tbody></table></div>`; }
+function itemCard(e) { return `<a class="card item" href="${plink(e)}" data-nav><div class="art">${e.sprite ? `<img src="${e.sprite}" alt="" loading="lazy">` : ''}</div><div class="card-body"><div class="card-name">${esc(e.name)}</div><div class="chips">${e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div><div class="muted small">${esc(e.raw.short_desc || e.raw.description || '')}</div></div></a>`; }
+const SORTS = [['', 'Relevance'], ['name', 'Name'], ['dex', 'Dex #'], ['bst', 'BST'], ['spe', 'Speed'], ['atk', 'Attack'], ['spa', 'Sp. Atk'], ['def', 'Defense'], ['spd', 'Sp. Def'], ['hp', 'HP'], ['bp', 'Base power'], ['pp', 'PP'], ['prio', 'Priority']];
+function results(st) {
+  const q = st.q; let r;
+  try { r = search(IDX, q); }
+  catch (err) { if (!(err instanceof QueryError)) throw err; const [s, e] = err.span || [0, 0];
+    return `<section class="wrap"><div class="notice error"><b>${err.kind === 'syntax' ? 'Syntax error' : 'Scope error'}.</b> ${esc(err.message)}<pre><code>${esc(q.slice(0, s))}<mark>${esc(q.slice(s, e) || ' ')}</mark>${esc(q.slice(e))}</code></pre>${err.kind === 'semantic' ? '<p>Add <code>kind:species</code> or <code>kind:move</code>, or split it into two searches.</p>' : '<p>See the <a href="?guide=1" data-nav>syntax guide</a>.</p>'}</div></section>`; }
+  const scopeTxt = r.scope.length === 4 ? 'all kinds' : r.scope.map(k => KIND_LABEL[k]).join(', ');
+  const curOrder = r.order || '';
+  const controls = `<div class="controls"><div class="wrap controls-in"><div class="count"><b>${r.results.length}</b> result${r.results.length === 1 ? '' : 's'} <span class="muted">· ${scopeTxt}</span></div>
+    <div class="ctl"><label>View</label><span class="seg"><a href="${setParam('view', 'grid')}" data-nav class="${st.view === 'grid' ? 'on' : ''}">Grid</a><a href="${setParam('view', 'list')}" data-nav class="${st.view === 'list' ? 'on' : ''}">List</a></span>
+    <label>Sort</label><select id="sort">${SORTS.map(([v, l]) => `<option value="${v}" ${v === curOrder ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div></div>`;
+  if (!r.results.length) return controls + `<section class="wrap"><div class="notice zero"><b>No results.</b> The query parsed fine and was searched across ${scopeTxt}.<ul><li>Bare words match <b>names</b> only — use <code>o:</code> for description text.</li><li>Stats are presented values; use <code>bspe</code> etc. for base stats.</li><li><code>m:</code> wants a move name, e.g. <code>m:"iron head"</code>.</li></ul></div></section>`;
+  const groups = {}; for (const e of r.results) (groups[e.kind] ||= []).push(e);
+  let body = '';
+  for (const k of KINDS) { const rows = groups[k]; if (!rows) continue; const cap = rows.slice(0, 300);
+    let inner; if (k === 'species') inner = st.view === 'list' ? speciesTable(cap) : `<div class="grid">${cap.map(speciesCard).join('')}</div>`;
+    else if (k === 'move') inner = moveTable(cap); else if (k === 'ability') inner = abilityTable(cap); else inner = `<div class="grid items">${cap.map(itemCard).join('')}</div>`;
+    body += `<section class="wrap group"><h2>${KIND_LABEL[k]} <span class="muted">${rows.length}</span></h2>${inner}${rows.length > 300 ? `<p class="muted">Showing 300 of ${rows.length}. Narrow the query.</p>` : ''}</section>`; }
+  return controls + body;
+}
+
+// ----- detail pages -----
+function effChips(e) { const w = IDX.types.filter(t => e.eff[t] >= 2), rs = IDX.types.filter(t => e.eff[t] > 0 && e.eff[t] < 1), im = IDX.types.filter(t => e.eff[t] === 0);
+  const f = (ts, mark) => ts.map(t => `<a href="${qlink(mark + ':' + t)}" data-nav>${typeChip(t)}${e.eff[t] === 4 ? '<sup>×4</sup>' : e.eff[t] === 0.25 ? '<sup>×¼</sup>' : ''}</a>`).join(' ') || '<span class="muted">—</span>';
+  return `<dl class="eff"><dt>Weak</dt><dd>${f(w, 'weak')}</dd><dt>Resists</dt><dd>${f(rs, 'resists')}</dd><dt>Immune</dt><dd>${f(im, 'immune')}</dd></dl><p class="muted small">Type chart only — abilities such as Levitate are not applied.</p>`; }
+function statTable(e) { const max = 255; return `<table class="stats"><tbody>${STATS.map(k => `<tr><th>${STAT_LABEL[k]}</th><td class="num">${e.ps[k]}</td><td class="bar"><i style="width:${Math.min(100, e.bs[k] / max * 100 * 1.6)}%"></i></td><td class="num muted">${e.bs[k]}</td></tr>`).join('')}<tr class="tot"><th>Total</th><td class="num">${STATS.reduce((n, k) => n + e.ps[k], 0)}</td><td></td><td class="num muted">${e.bst}</td></tr></tbody></table><p class="muted small">Presented (Level 50, 0 SP, neutral alignment) · <span class="muted">base</span></p>`; }
+function detail(d) {
+  const e = IDX.ents.find(x => x.kind === d.kind && x.slug === d.slug);
+  if (!e) return `<section class="wrap"><div class="notice error">No ${d.kind} called <code>${esc(d.slug)}</code>.</div></section>`;
+  const back = `<p class="back"><a href="#" id="back">← Back</a></p>`;
+  if (e.kind === 'species') {
+    const megas = IDX.ents.filter(x => x.is_mega && x.base_slug === e.slug); const base = e.base_slug && IDX.speciesBySlug[e.base_slug];
+    const moves = e.learnset.map(s => IDX.moveBySlug[s]).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+    return `<section class="wrap page">${back}<div class="page-grid"><div class="page-art"><div class="artbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div>
+      <div class="toolbox"><h3>Toolbox</h3><a href="${qlink('t:' + e.types.join(' t:'))}" data-nav>Other ${e.types.join('/')} Pokémon</a>${e.abilities.map(a => `<a href="${qlink('a:' + JSON.stringify(a))}" data-nav>Pokémon with ${esc(a)}</a>`).join('')}<a href="${qlink('lb:' + JSON.stringify(e.name) + ' cat:physical order:bp')}" data-nav>Its physical moves by power</a><a href="${qlink('lb:' + JSON.stringify(e.name) + ' cat:special order:bp')}" data-nav>Its special moves by power</a><a href="${qlink('lb:' + JSON.stringify(e.name) + ' prio>0')}" data-nav>Its priority moves</a>${e.stone ? `<a href="${qlink('name=' + e.stone)}" data-nav>Its Mega Stone</a>` : ''}</div></div>
+      <div class="page-main"><h1>${esc(e.name)}${e.is_mega ? ' <span class="badge">Mega</span>' : ''}</h1><div class="chips big">${e.types.map(typeChip).join('')}</div>
+      <p class="muted">#${e.dex ?? '—'} · ${e.kg} kg${base ? ` · Mega of <a href="${plink(base)}" data-nav>${esc(base.name)}</a>` : ''}${e.stone ? ` · holds <b>${esc(IDX.ents.find(x => x.kind === 'item' && x.slug === e.stone)?.name || e.stone)}</b>` : ''}</p>
+      <h3>Abilities</h3><ul class="plain">${e.abilitySlugs.map((s, i) => { const a = IDX.ents.find(x => x.kind === 'ability' && x.slug === s); return `<li><a href="${a ? plink(a) : '#'}" data-nav><b>${esc(e.abilities[i])}</b></a>${e.raw.abilities && e.raw.abilities[i] && e.raw.abilities[i].is_hidden ? ' <span class="badge">Hidden</span>' : ''} <span class="muted">${esc(a ? a.raw.short_desc || '' : '')}</span></li>`; }).join('')}</ul>
+      <h3>Stats</h3>${statTable(e)}<h3>Defensive matchups</h3>${effChips(e)}
+      ${megas.length ? `<h3>Mega Evolutions</h3><div class="grid mini">${megas.map(speciesCard).join('')}</div>` : ''}
+      <h3>Learnset <span class="muted">${moves.length}</span></h3><div class="movechips">${moves.map(m => `<a class="mc type-${m.type}" href="${plink(m)}" data-nav>${esc(m.name)}</a>`).join('')}</div></div></div></section>`;
+  }
+  if (e.kind === 'move') { const lb = (IDX.learnedBy[e.slug] || []).filter(s => !s.is_mega);
+    return `<section class="wrap page">${back}<div class="page-grid"><div class="page-art"><div class="artbox movebox"><div class="chips big">${typeChip(e.type)}${catChip(e.cat)}</div><div class="bigstat"><span><b>${e.bp || '—'}</b>BP</span><span><b>${e.acc ?? '—'}</b>Acc</span><span><b>${e.pp}</b>PP</span><span><b>${e.prio > 0 ? '+' : ''}${e.prio}</b>Prio</span></div></div>
+      <div class="toolbox"><h3>Toolbox</h3><a href="${qlink('m=' + JSON.stringify(e.name))}" data-nav>Pokémon that learn it (search)</a><a href="${qlink('m=' + JSON.stringify(e.name) + ' order:spe')}" data-nav>…fastest first</a><a href="${qlink('t:' + e.type + ' cat:' + e.cat + ' order:bp')}" data-nav>Other ${e.type} ${e.cat} moves</a>${e.flags.map(f => `<a href="${qlink('flag:' + f)}" data-nav>All <i>${f}</i> moves</a>`).join('')}</div></div>
+      <div class="page-main"><h1>${esc(e.name)}</h1><p>${esc(e.raw.long_desc || e.raw.short_desc || '')}</p><p class="muted">Target: ${esc(e.target)}${e.variable ? ' · variable power' : ''}${e.classes.length ? ' · Classification: ' + e.classes.map(esc).join(', ') : ''}<br>Flags: ${e.flags.map(f => `<code>${f}</code>`).join(' ') || '—'}</p>
+      <h3>Learned by <span class="muted">${lb.length}</span></h3><div class="grid mini">${lb.map(speciesCard).join('')}</div></div></div></section>`; }
+  if (e.kind === 'ability') { const holders = IDX.ents.filter(x => x.kind === 'species' && x.abilitySlugs.includes(e.slug));
+    return `<section class="wrap page">${back}<div class="page-grid"><div class="page-art"><div class="toolbox"><h3>Toolbox</h3><a href="${qlink('a=' + JSON.stringify(e.name))}" data-nav>Pokémon with it (search)</a><a href="${qlink('a=' + JSON.stringify(e.name) + ' order:spe')}" data-nav>…fastest first</a></div></div>
+      <div class="page-main"><h1>${esc(e.name)}</h1><p>${esc(e.raw.long_desc || e.raw.short_desc || '')}</p><h3>Pokémon <span class="muted">${holders.length}</span></h3><div class="grid mini">${holders.map(speciesCard).join('')}</div></div></div></section>`; }
+  const megaFor = IDX.ents.filter(x => x.is_mega && x.stone === e.slug);
+  return `<section class="wrap page">${back}<div class="page-grid"><div class="page-art"><div class="artbox itembox">${e.sprite ? `<img src="${e.sprite}" alt="">` : ''}</div><div class="toolbox"><h3>Toolbox</h3>${e.cats.map(c => `<a href="${qlink('cat:' + JSON.stringify(c))}" data-nav>All ${esc(c)} items</a>`).join('')}</div></div>
+    <div class="page-main"><h1>${esc(e.name)}</h1><div class="chips big">${e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div><p>${esc(e.raw.long_desc || e.raw.description || '')}</p>${megaFor.length ? `<h3>Mega Evolution</h3><div class="grid mini">${megaFor.map(speciesCard).join('')}</div>` : ''}</div></div></section>`;
+}
+
+// ----- syntax guide -----
+function guide() {
+  const T = rows => `<table class="guide"><tbody>${rows.map(([a, b]) => `<tr><td><code>${esc(a)}</code></td><td>${b}</td></tr>`).join('')}</tbody></table>`;
+  return `<section class="wrap page doc"><h1>Syntax guide</h1><p>Type words to search names. Add <code>field:value</code> terms to filter. Terms combine with AND; use <code>or</code>, <code>-</code>, parentheses, quotes and <code>/regex/</code> as needed. Every search is a link you can share.</p>
+  <h2>Examples</h2><div class="ex-grid">${EXAMPLES.map(([q, why]) => `<a class="ex" href="${qlink(q)}" data-nav><code>${esc(q)}</code><span>${esc(why)}</span></a>`).join('')}</div>
+  <h2>Shape of a query</h2>${T([['word', 'name match across Pokémon, moves, abilities, items'], ['a b', 'AND'], ['a or b', 'OR — lower precedence than AND'], ['-a', 'NOT'], ['( … )', 'grouping'], ['"iron head"', 'quote values with spaces'], ['field:/re/', 'regex on text fields, case-insensitive'], [': = != < <= > >=', 'operators; <code>:</code> means "matches"']])}
+  <h2>Pokémon</h2>${T([['t: type:', 'has type — <code>t:steel t:fairy</code> both, <code>-t:water</code> neither'], ['a: ability:', 'has ability (any slot)'], ['m: move: learns:', 'learnset contains the move; repeat for AND'], ['hp atk def spa spd spe', 'presented stats (in-game Level 50 numbers)'], ['bhp batk bdef bspa bspd bspe', 'base stats'], ['bst', 'base-stat total'], ['weak: resists: immune:', 'from the type chart only'], ['is:mega  stone:  base:', 'Mega formes'], ['dex: kg: abilities:', 'National Dex number, weight, ability count']])}
+  <h2>Moves</h2>${T([['t: cat:', 'type; physical / special / status'], ['bp: acc: pp: prio:', 'numbers — <code>bp>=80</code>, <code>prio>0</code>'], ['flag:', 'contact, protect, sound, punch, bite, pulse, bullet, slicing, wind, powder, …'], ['target:', 'spread, single, or Showdown target ids'], ['class:', 'Champions Classification — <code>class:punching</code>'], ['lb: learnedby:', 'moves a Pokémon learns'], ['is:spread is:variable', 'spread moves, variable-power moves']])}
+  <h2>Abilities &amp; items</h2>${T([['o: desc: text:', 'description text — moves, abilities, items'], ['cat:', 'item category — berry, mega stone, recovery, …'], ['for:', 'Mega Stone for a Pokémon'], ['is:consumable is:held', 'item class']])}
+  <h2>Scope, sort, kinds</h2>${T([['kind: is:', 'species, move, ability, item'], ['order: dir:', 'spe, bp, name, dex, bst, … · asc / desc']])}
+  <p>A query's result kinds are the intersection of what its fields apply to: <code>t:fire spe>100</code> is Pokémon only; <code>t:fire bp>=80</code> is moves only; both together is an error, not an empty list. Regulation history (<code>r:</code>, <code>new:</code>, <code>removed:</code>) is not in this prototype.</p></section>`;
+}
+
+// ----- render + events -----
+function render() {
+  const st = state();
+  let body; if (st.detail) body = detail(st.detail); else if (st.guide) body = guide(); else if (st.q) body = results(st); else body = home();
+  app.innerHTML = header(st) + `<main>${body}</main>` + footer();
+  document.title = st.detail ? `${IDX.ents.find(x => x.kind === st.detail.kind && x.slug === st.detail.slug)?.name || 'VGC Dex'} · VGC Dex` : st.q ? `${st.q} · VGC Dex` : 'VGC Dex';
+  const f = $('#form'); if (f) f.addEventListener('submit', ev => { ev.preventDefault(); const v = $('#q').value.trim(); nav(v ? qlink(v) + (st.view !== 'grid' ? '&view=' + st.view : '') : ''); });
+  const sort = $('#sort'); if (sort) sort.addEventListener('change', () => { let q = st.q.replace(/\s*\b(order|sort|dir|direction):\S+/g, '').trim(); if (sort.value) q += ' order:' + sort.value; nav(qlink(q) + (st.view !== 'grid' ? '&view=' + st.view : '')); });
+  for (const id of ['random', 'random2']) { const el = $('#' + id); if (el) el.addEventListener('click', ev => { ev.preventDefault(); const sp = IDX.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); }
+  const back = $('#back'); if (back) back.addEventListener('click', ev => { ev.preventDefault(); if (history.length > 1 && document.referrer !== '' || history.state === 'app') history.back(); else nav(''); });
+  const th = $('#theme'); if (th) th.addEventListener('click', () => { const cur = document.documentElement.dataset.theme || 'light'; const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('vgcdex-theme', nx); } catch (e) {} });
+}
+document.addEventListener('click', ev => { const a = ev.target.closest('a[data-nav]'); if (!a) return; const href = a.getAttribute('href'); if (!href || href.startsWith('#')) return; ev.preventDefault(); history.pushState('app', '', href === './' ? location.pathname : href); render(); window.scrollTo(0, 0); });
+window.addEventListener('popstate', render);
 window.VGCDEX = { search: q => search(IDX, q), parse, get idx() { return IDX; } };
-fetch('data/m-c.json').then(r => r.json()).then(d => {
-  IDX = buildIndex(d); IDX_ITEM_CATS = d.item_categories.slice();
-  $('#reg').textContent = `Pokémon Champions · Regulation ${d.regulation.regulation}`;
-  $('#foot').innerHTML = `Prototype · data: champions-logic ${esc(d.data_version)} · revision ${esc(d.data_revision)} · ${IDX.ents.length} entities · Pokémon and all related names are © Nintendo / Creatures / GAME FREAK; data via Pokémon Showdown (MIT) and Serebii; sprites via Bulbagarden Archives / Serebii. Fan project, not affiliated.`;
-  renderHelp();
-  render(new URLSearchParams(location.search).get('q') || '');
-}).catch(err => { statusEl.className = 'err'; statusEl.textContent = 'Failed to load data: ' + err.message; });
+fetch('data/m-c.json').then(r => r.json()).then(d => { IDX = buildIndex(d); IDX_ITEM_CATS = d.item_categories.slice(); render(); })
+  .catch(err => { app.innerHTML = `<main class="wrap"><div class="notice error">Failed to load data: ${esc(err.message)}</div></main>`; });
 })();
