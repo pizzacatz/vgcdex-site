@@ -119,6 +119,7 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 .asc{height:26px;font-size:15px;display:flex;flex-flow:row nowrap;align-items:center;margin:0 16px 5px 0;cursor:pointer;white-space:nowrap}
 .asc input[type=checkbox]{appearance:none;-webkit-appearance:none;width:26px;height:26px;background:var(--field);border-radius:2px;border:1px solid var(--field-line);color:var(--accent);font-size:20px;display:flex;justify-content:center;align-items:center;margin:0 8px 0 0;cursor:pointer;transition:box-shadow 60ms linear}
 .asc input[type=checkbox]:hover,.asc input[type=checkbox]:focus{box-shadow:0 0 4px var(--field-line);outline:none}.asc input[type=checkbox]:checked::before{content:"✓";font-weight:700;line-height:1}
+.asc input[type=radio]{appearance:none;-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--field);border:1px solid var(--field-line);margin:0 8px 0 0;display:flex;justify-content:center;align-items:center;cursor:pointer}.asc input[type=radio]:checked::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--accent)}.asc input[type=radio]:hover,.asc input[type=radio]:focus{box-shadow:0 0 4px var(--field-line);outline:none}
 .tok-wrap{position:relative;width:560px;max-width:100%}.tok-wrap.single .form-input{width:100%;max-width:none;min-width:0}
 .tokens{display:flex;flex-flow:column nowrap;align-items:stretch;gap:4px;width:100%;min-height:38px;padding:5px 6px;background:var(--field);border:1px solid var(--field-line);border-radius:2px;cursor:text}
 .tokens:focus-within{box-shadow:0 0 3px var(--field-line);border-color:var(--accent)}
@@ -139,7 +140,7 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 @media (max-width:700px){.submit-bar{flex-wrap:wrap;gap:8px}.qpreview{flex-basis:100%;order:-1;font-size:12px;padding:0}.reset-n{margin-right:auto}}
 .also code{color:var(--accent)}.editadv{font-size:.85rem;margin-left:8px}
 @media (max-width:700px){.form-row-label{width:100%;min-width:0;height:auto;padding:0 0 6px}.form-row-label.short{height:auto}.form-row-content{width:100%}.form-input,.tok-wrap,#stats-rows,#mnums-rows,#matchups-rows,#msubs-rows{width:100%;max-width:none;min-width:0}.form-input.auto,select.form-input{width:auto}.dup>select.form-input{flex:0 1 auto;min-width:0;font-size:14px;padding:8px 24px 8px 8px;background-position:right 6px center}.dup>input[type=number]{flex:1 1 60px;padding-right:8px}.pillsel>.pill-btn.form-input.auto{width:132px;min-width:132px}.dup>input[type=number]{min-width:72px}.asc{margin-bottom:8px}
-.tok{height:44px;gap:8px}.tok-x{width:36px;height:36px;font-size:18px}.pol{height:36px;width:48px;font-size:12px}.tok-in{height:36px}.tok-menu-row{min-height:44px;display:flex;align-items:center}.pill-menu .tok-menu-row{min-height:44px}.asc{height:auto;min-height:44px}.asc input[type=checkbox]{width:30px;height:30px}}
+.tok{height:44px;gap:8px}.tok-x{width:36px;height:36px;font-size:18px}.pol{height:36px;width:48px;font-size:12px}.tok-in{height:36px}.tok-menu-row{min-height:44px;display:flex;align-items:center}.pill-menu .tok-menu-row{min-height:44px}.asc{height:auto;min-height:44px}.asc input[type=checkbox],.asc input[type=radio]{width:30px;height:30px}}
 /* ---- footer ---- */
 .foot{background:var(--gpe-black);color:#cfc4ba;font-size:.8rem;padding:28px 0;margin-top:30px;border-top:1px solid var(--gpe-surface)}.foot b{color:#fff}.foot code{color:var(--gpe-gold)}
 .foot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px}.foot .proto{display:inline-block;margin-top:6px;font-size:.7rem;padding:2px 8px;border-radius:999px;border:1px solid var(--gpe-gold);color:var(--gpe-gold);letter-spacing:.06em;text-transform:uppercase}
@@ -150,6 +151,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260915195841"></script>
+<script src="app.js?v=20260915221129"></script>
 </body>
 </html>
