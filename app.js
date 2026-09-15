@@ -22,7 +22,7 @@ function buildIndex(d) {
   for (const s of d.species) {
     const row = { kind: 'species', slug: s.slug, name: s.name, raw: s, is_mega: false, types: s.types,
       abilities: s.abilities.map(a => a.name), abilitySlugs: s.abilities.map(a => a.slug), learnset: s.learnset || [],
-      ps: s.presented_stats, bs: s.base_stats, bst: STATS.reduce((n, k) => n + s.base_stats[k], 0),
+      ps: s.presented_stats, total: STATS.reduce((n, k) => n + s.presented_stats[k], 0),
       dex: s.national_dex, kg: s.weight_kg, sprite: s.sprites && s.sprites.menu, art: s.sprites && s.sprites.front, eff: effOf(s.types) };
     speciesBySlug[s.slug] = row; ents.push(row);
   }
@@ -30,7 +30,7 @@ function buildIndex(d) {
     const base = speciesBySlug[m.base_slug];
     ents.push({ kind: 'species', slug: m.slug, name: m.name, raw: m, is_mega: true, base_slug: m.base_slug, stone: m.mega_stone,
       types: m.types, abilities: [m.ability.name], abilitySlugs: [m.ability.slug], learnset: base ? base.learnset : [],
-      ps: m.presented_stats, bs: m.base_stats, bst: STATS.reduce((n, k) => n + m.base_stats[k], 0),
+      ps: m.presented_stats, total: STATS.reduce((n, k) => n + m.presented_stats[k], 0),
       dex: base ? base.dex : null, kg: m.weight_kg, sprite: m.sprites && m.sprites.menu, art: m.sprites && m.sprites.front, eff: effOf(m.types) });
   }
   const moveBySlug = {};
@@ -64,11 +64,13 @@ function def(names, kinds, type, get, extra) { const f = Object.assign({ name: n
 def(['t', 'type'], ['species', 'move'], 'enum', e => e.kind === 'species' ? e.types : [e.type], { values: 'types' });
 def(['a', 'ability'], ['species'], 'text', e => e.abilities);
 def(['m', 'move', 'learns'], ['species'], 'text', (e, idx) => e.learnset.map(s => idx.moveBySlug[s] ? idx.moveBySlug[s].name : s));
-for (const k of STATS) { def([k, k === 'spe' ? 'speed' : k === 'atk' ? 'attack' : k === 'def' ? 'defense' : k], ['species'], 'num', e => e.ps[k]); def(['b' + k], ['species'], 'num', e => e.bs[k]); }
-def(['bst'], ['species'], 'num', e => e.bst);
+for (const k of STATS) def([k, k === 'spe' ? 'speed' : k === 'atk' ? 'attack' : k === 'def' ? 'defense' : k], ['species'], 'num', e => e.ps[k]);
+def(['total', 'stats'], ['species'], 'num', e => e.total);
 def(['dex', 'nat'], ['species'], 'num', e => e.dex);
 def(['kg', 'weight'], ['species'], 'num', e => e.kg);
 def(['weak'], ['species'], 'enum', null, { values: 'types', test: (e, v) => e.eff[v] >= 2 });
+def(['xweak', 'extremelyweak'], ['species'], 'enum', null, { values: 'types', test: (e, v) => e.eff[v] >= 4 });
+def(['xresists', 'doublyresists'], ['species'], 'enum', null, { values: 'types', test: (e, v) => e.eff[v] > 0 && e.eff[v] <= 0.25 });
 def(['resists', 'resist'], ['species'], 'enum', null, { values: 'types', test: (e, v) => e.eff[v] > 0 && e.eff[v] <= 0.5 });
 def(['immune'], ['species'], 'enum', null, { values: 'types', test: (e, v) => e.eff[v] === 0 });
 def(['stone', 'megastone'], ['species'], 'text', e => e.stone ? [e.stone] : []);
@@ -203,8 +205,8 @@ function nameScore(ast, e) { // relevance for bare words: 3 exact, 2 prefix, 1 c
   let best = 0; for (const w of words) { const v = norm(w.v), vc = compact(w.v); if (e.norm === v || e.compact === vc) best = Math.max(best, 3); else if (e.norm.startsWith(v) || e.compact.startsWith(vc)) best = Math.max(best, 2); else if (e.norm.includes(v) || e.compact.includes(vc)) best = Math.max(best, 1); }
   return best;
 }
-const ORDER_KEYS = { name: e => e.name, dex: e => e.dex ?? 9999, bst: e => e.bst, bp: e => e.bp, pp: e => e.pp, acc: e => e.acc ?? 101, prio: e => e.prio, kg: e => e.kg };
-for (const k of STATS) { ORDER_KEYS[k] = e => e.ps ? e.ps[k] : undefined; ORDER_KEYS['b' + k] = e => e.bs ? e.bs[k] : undefined; }
+const ORDER_KEYS = { name: e => e.name, dex: e => e.dex ?? 9999, total: e => e.total, bp: e => e.bp, pp: e => e.pp, acc: e => e.acc ?? 101, prio: e => e.prio, kg: e => e.kg };
+for (const k of STATS) ORDER_KEYS[k] = e => e.ps ? e.ps[k] : undefined;
 function search(idx, q) {
   const ast = parse(q); if (!ast) return { scope: KINDS, results: [], ast: null };
   const directives = {}; const scope = validate(ast, idx, directives);
@@ -249,18 +251,18 @@ function footer() { const m = IDX.meta; return `<footer class="foot"><div class=
 
 // ----- home -----
 const EXAMPLES = [
-  ['t:steel spe>=100', 'Fast Steel types'], ['m:"iron head" m:"knock off"', 'Learns both moves'], ['m:/^(u-turn|volt switch|flip turn)$/', 'Any pivot move (regex)'],
+  ['t:steel spe>=100', 'Fast Steel types'], ['xweak:ice t:dragon', 'Dragons 4× weak to Ice'], ['m:"iron head" m:"knock off"', 'Learns both moves'], ['m:/^(u-turn|volt switch|flip turn)$/', 'Any pivot move (regex)'],
   ['a:intimidate or a:prankster', 'Either ability'], ['weak:fairy -resists:steel', 'Fairy-weak, no Steel resist'], ['immune:ground is:mega', 'Megas immune to Ground'],
   ['t:fire bp>=80 cat:special', 'Special Fire moves'], ['prio>0 -cat:status order:bp', 'Damaging priority, by power'], ['o:/flinch/ kind:move', 'Moves whose text says flinch'],
-  ['o:/heals?|restores?/ kind:ability', 'Healing abilities'], ['cat:berry o:/hp/', 'Berries mentioning HP'], ['bst>=600 -is:mega order:spe', '600-BST non-Megas by Speed']];
+  ['o:/heals?|restores?/ kind:ability', 'Healing abilities'], ['cat:berry o:/hp/', 'Berries mentioning HP'], ['total>=775 -is:mega order:spe', '775+ total non-Megas by Speed']];
 // ----- results -----
 function statRow(e) { return `<span class="statrow">${STATS.map(k => `<b>${STAT_LABEL[k]}</b>${e.ps[k]}`).join('')}</span>`; }
 function speciesCard(e) { return `<a class="card" href="${plink(e)}" data-nav><div class="art">${e.art ? `<img src="${e.art}" alt="" loading="lazy">` : ''}${e.is_mega ? '<span class="mega">Mega</span>' : ''}</div><div class="card-body"><div class="card-name">${esc(e.name)}</div><div class="chips">${e.types.map(typeChip).join('')}</div>${statRow(e)}</div></a>`; }
-function speciesTable(rows) { return `<div class="tablewrap"><table class="list"><thead><tr><th></th><th>Name</th><th>Type</th>${STATS.map(k => `<th class="num">${STAT_LABEL[k]}</th>`).join('')}<th class="num">BST</th><th>Abilities</th></tr></thead><tbody>${rows.map(e => `<tr><td class="thumb"><img src="${e.sprite}" alt="" loading="lazy"></td><td><a href="${plink(e)}" data-nav>${esc(e.name)}</a>${e.is_mega ? ' <span class="badge">Mega</span>' : ''}</td><td>${e.types.map(typeChip).join(' ')}</td>${STATS.map(k => `<td class="num">${e.ps[k]}</td>`).join('')}<td class="num">${e.bst}</td><td class="muted">${e.abilities.map(esc).join(', ')}</td></tr>`).join('')}</tbody></table></div>`; }
+function speciesTable(rows) { return `<div class="tablewrap"><table class="list"><thead><tr><th></th><th>Name</th><th>Type</th>${STATS.map(k => `<th class="num">${STAT_LABEL[k]}</th>`).join('')}<th class="num">Total</th><th>Abilities</th></tr></thead><tbody>${rows.map(e => `<tr><td class="thumb"><img src="${e.sprite}" alt="" loading="lazy"></td><td><a href="${plink(e)}" data-nav>${esc(e.name)}</a>${e.is_mega ? ' <span class="badge">Mega</span>' : ''}</td><td>${e.types.map(typeChip).join(' ')}</td>${STATS.map(k => `<td class="num">${e.ps[k]}</td>`).join('')}<td class="num">${e.total}</td><td class="muted">${e.abilities.map(esc).join(', ')}</td></tr>`).join('')}</tbody></table></div>`; }
 function moveTable(rows) { return `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Type</th><th>Cat</th><th class="num">BP</th><th class="num">Acc</th><th class="num">PP</th><th class="num">Prio</th><th>Effect</th></tr></thead><tbody>${rows.map(e => `<tr><td><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td>${typeChip(e.type)}</td><td>${catChip(e.cat)}</td><td class="num">${e.bp || '—'}</td><td class="num">${e.acc ?? '—'}</td><td class="num">${e.pp}</td><td class="num">${e.prio > 0 ? '+' : ''}${e.prio}</td><td class="muted">${esc(e.raw.short_desc || '')}</td></tr>`).join('')}</tbody></table></div>`; }
 function abilityTable(rows) { return `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Effect</th><th class="num">Pokémon</th></tr></thead><tbody>${rows.map(e => `<tr><td><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td class="muted">${esc(e.raw.short_desc || '')}</td><td class="num">${IDX.ents.filter(x => x.kind === 'species' && x.abilitySlugs.includes(e.slug)).length}</td></tr>`).join('')}</tbody></table></div>`; }
 function itemCard(e) { return `<a class="card item" href="${plink(e)}" data-nav><div class="art">${e.sprite ? `<img src="${e.sprite}" alt="" loading="lazy">` : ''}</div><div class="card-body"><div class="card-name">${esc(e.name)}</div><div class="chips">${e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div><div class="muted small">${esc(e.raw.short_desc || e.raw.description || '')}</div></div></a>`; }
-const SORTS = [['', 'Relevance'], ['name', 'Name'], ['dex', 'Dex #'], ['bst', 'BST'], ['spe', 'Speed'], ['atk', 'Attack'], ['spa', 'Sp. Atk'], ['def', 'Defense'], ['spd', 'Sp. Def'], ['hp', 'HP'], ['bp', 'Base power'], ['pp', 'PP'], ['prio', 'Priority']];
+const SORTS = [['', 'Relevance'], ['name', 'Name'], ['dex', 'Dex #'], ['total', 'Stats Total'], ['spe', 'Speed'], ['atk', 'Attack'], ['spa', 'Sp. Atk'], ['def', 'Defense'], ['spd', 'Sp. Def'], ['hp', 'HP'], ['bp', 'Base power'], ['pp', 'PP'], ['prio', 'Priority']];
 function results(st) {
   const q = st.q; let r;
   try { r = search(IDX, q); }
@@ -271,7 +273,7 @@ function results(st) {
   const controls = `<div class="controls"><div class="wrap controls-in"><div class="count"><b>${r.results.length}</b> result${r.results.length === 1 ? '' : 's'} <span class="muted">· ${scopeTxt}</span> <a class="editadv" href="${qlink(q).replace('?q=', '?adv=1&q=')}${st.view === 'list' ? '&view=list' : ''}" data-nav>Edit in advanced search</a></div>
     <div class="ctl"><label>View</label><span class="seg"><a href="${setParam('view', 'grid')}" data-nav class="${st.view === 'grid' ? 'on' : ''}">Grid</a><a href="${setParam('view', 'list')}" data-nav class="${st.view === 'list' ? 'on' : ''}">List</a></span>
     <label>Sort</label><select id="sort">${SORTS.map(([v, l]) => `<option value="${v}" ${v === curOrder ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div></div>`;
-  if (!r.results.length) return controls + `<section class="wrap"><div class="notice zero"><b>No results.</b> The query parsed fine and was searched across ${scopeTxt}.<ul><li>Bare words match <b>names</b> only — use <code>o:</code> for description text.</li><li>Stats are presented values; use <code>bspe</code> etc. for base stats.</li><li><code>m:</code> wants a move name, e.g. <code>m:"iron head"</code>.</li></ul><p><a href="${qlink(q).replace('?q=', '?adv=1&q=')}" data-nav>Edit in advanced search</a></p></div></section>`;
+  if (!r.results.length) return controls + `<section class="wrap"><div class="notice zero"><b>No results.</b> The query parsed fine and was searched across ${scopeTxt}.<ul><li>Bare words match <b>names</b> only — use <code>o:</code> for description text.</li><li>Stats are the in-game Level 50 values, not base stats.</li><li><code>m:</code> wants a move name, e.g. <code>m:"iron head"</code>.</li></ul><p><a href="${qlink(q).replace('?q=', '?adv=1&q=')}" data-nav>Edit in advanced search</a></p></div></section>`;
   const groups = {}; for (const e of r.results) (groups[e.kind] ||= []).push(e);
   let body = '';
   for (const k of KINDS) { const rows = groups[k]; if (!rows) continue; const cap = rows.slice(0, 300);
@@ -285,7 +287,7 @@ function results(st) {
 function effChips(e) { const w = IDX.types.filter(t => e.eff[t] >= 2), rs = IDX.types.filter(t => e.eff[t] > 0 && e.eff[t] < 1), im = IDX.types.filter(t => e.eff[t] === 0);
   const f = (ts, mark) => ts.map(t => `<a href="${qlink(mark + ':' + t)}" data-nav>${typeChip(t)}${e.eff[t] === 4 ? '<sup>×4</sup>' : e.eff[t] === 0.25 ? '<sup>×¼</sup>' : ''}</a>`).join(' ') || '<span class="muted">—</span>';
   return `<dl class="eff"><dt>Weak</dt><dd>${f(w, 'weak')}</dd><dt>Resists</dt><dd>${f(rs, 'resists')}</dd><dt>Immune</dt><dd>${f(im, 'immune')}</dd></dl><p class="muted small">Type chart only — abilities such as Levitate are not applied.</p>`; }
-function statTable(e) { const max = 255; return `<table class="stats"><tbody>${STATS.map(k => `<tr><th>${STAT_LABEL[k]}</th><td class="num">${e.ps[k]}</td><td class="bar"><i style="width:${Math.min(100, e.bs[k] / max * 100 * 1.6)}%"></i></td><td class="num muted">${e.bs[k]}</td></tr>`).join('')}<tr class="tot"><th>Total</th><td class="num">${STATS.reduce((n, k) => n + e.ps[k], 0)}</td><td></td><td class="num muted">${e.bst}</td></tr></tbody></table><p class="muted small">Presented (Level 50, 0 SP, neutral alignment) · <span class="muted">base</span></p>`; }
+function statTable(e) { const max = 250; return `<table class="stats"><tbody>${STATS.map(k => `<tr><th>${STAT_LABEL[k]}</th><td class="num">${e.ps[k]}</td><td class="bar"><i style="width:${Math.min(100, (e.ps[k] - (k === 'hp' ? 75 : 20)) / max * 100 * 1.6)}%"></i></td></tr>`).join('')}<tr class="tot"><th>Total</th><td class="num">${e.total}</td><td></td></tr></tbody></table><p class="muted small">In-game stats at Level 50, 0 Stat Points, neutral Stat Alignment.</p>`; }
 function detail(d) {
   const e = IDX.ents.find(x => x.kind === d.kind && x.slug === d.slug);
   if (!e) return `<section class="wrap"><div class="notice error">No ${d.kind} called <code>${esc(d.slug)}</code>.</div></section>`;
@@ -320,10 +322,10 @@ function guide() {
   const T = rows => `<table class="guide"><tbody>${rows.map(([a, b]) => `<tr><td><code>${esc(a)}</code></td><td>${b}</td></tr>`).join('')}</tbody></table>`;
   return `<section class="wrap page doc"><h1>Syntax guide</h1><p>Type words to search names. Add <code>field:value</code> terms to filter. Terms combine with AND; use <code>or</code>, <code>-</code>, parentheses, quotes and <code>/regex/</code> as needed. Every search is a link you can share.</p>
   <h2>Shape of a query</h2>${T([['word', 'name match across Pokémon, moves, abilities, items'], ['a b', 'AND'], ['a or b', 'OR — lower precedence than AND'], ['-a', 'NOT'], ['( … )', 'grouping'], ['"iron head"', 'quote values with spaces'], ['field:/re/', 'regex on text fields, case-insensitive'], [': = != < <= > >=', 'operators; <code>:</code> means "matches"']])}
-  <h2>Pokémon</h2>${T([['t: type:', 'has type — <code>t:steel t:fairy</code> both, <code>-t:water</code> neither, <code>t=steel/fairy</code> exactly'], ['a: ability:', 'has ability (any slot)'], ['m: move: learns:', 'learnset contains the move; repeat for AND'], ['hp atk def spa spd spe', 'presented stats (in-game Level 50 numbers)'], ['bhp batk bdef bspa bspd bspe', 'base stats'], ['bst', 'base-stat total'], ['weak: resists: immune:', 'from the type chart only'], ['is:mega  stone:  base:', 'Mega formes'], ['dex: kg: abilities:', 'National Dex number, weight, ability count']])}
+  <h2>Pokémon</h2>${T([['t: type:', 'has type — <code>t:steel t:fairy</code> both, <code>-t:water</code> neither, <code>t=steel/fairy</code> exactly'], ['a: ability:', 'has ability (any slot)'], ['m: move: learns:', 'learnset contains the move; repeat for AND'], ['hp atk def spa spd spe', 'in-game stats at Level 50 (0 Stat Points, neutral alignment)'], ['total', 'sum of the six stats'], ['weak: xweak: resists: xresists: immune:', 'takes ≥2× / 4× / ≤½× / ¼× / 0× from a type — type chart only'], ['is:mega  stone:  base:', 'Mega formes'], ['dex: kg: abilities:', 'National Dex number, weight, ability count']])}
   <h2>Moves</h2>${T([['t: cat:', 'type; physical / special / status'], ['bp: acc: pp: prio:', 'numbers — <code>bp>=80</code>, <code>prio>0</code>'], ['flag:', 'contact, protect, sound, punch, bite, pulse, bullet, slicing, wind, powder, …'], ['target:', 'spread, single, or Showdown target ids'], ['class:', 'Champions Classification — <code>class:punching</code>'], ['lb: learnedby:', 'moves a Pokémon learns'], ['is:spread is:variable', 'spread moves, variable-power moves']])}
   <h2>Abilities &amp; items</h2>${T([['o: desc: text:', 'description text — moves, abilities, items'], ['cat:', 'item category — berry, mega stone, recovery, …'], ['for:', 'Mega Stone for a Pokémon'], ['is:consumable is:held', 'item class']])}
-  <h2>Scope, sort, kinds</h2>${T([['kind: is:', 'species, move, ability, item'], ['order: dir:', 'spe, bp, name, dex, bst, … · asc / desc']])}
+  <h2>Scope, sort, kinds</h2>${T([['kind: is:', 'species, move, ability, item'], ['order: dir:', 'spe, bp, name, dex, total, … · asc / desc']])}
   <p>A query's result kinds are the intersection of what its fields apply to: <code>t:fire spe>100</code> is Pokémon only; <code>t:fire bp>=80</code> is moves only; both together is an error, not an empty list. Regulation history (<code>r:</code>, <code>new:</code>, <code>removed:</code>) is not in this prototype.</p>
   <h2>Examples</h2><div class="ex-grid">${EXAMPLES.map(([q, why]) => `<a class="ex" href="${qlink(q)}" data-nav><code>${esc(q)}</code><span>${esc(why)}</span></a>`).join('')}</div></section>`;
 }
@@ -331,14 +333,15 @@ function guide() {
 // ---------- advanced search form (home page) — Scryfall /advanced structure ----------
 const FLAG_LIST = ['contact', 'protect', 'sound', 'punch', 'bite', 'pulse', 'bullet', 'slicing', 'wind', 'powder', 'dance', 'heal', 'recharge', 'charge', 'reflectable', 'snatch', 'bypasssub', 'gravity', 'defrost', 'explosive', 'mental', 'mirror', 'metronome'];
 const CRIT_LIST = [['mega', 'Mega forme'], ['spread', 'Spread move'], ['variable', 'Variable-power move'], ['consumable', 'Consumable item'], ['held', 'Held item']];
-const STAT_OPTS = [...STATS.map(k => [k, ({ hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Attack', spd: 'Sp. Defense', spe: 'Speed' })[k]]), ...STATS.map(k => ['b' + k, 'Base ' + ({ hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Attack', spd: 'Sp. Defense', spe: 'Speed' })[k]]), ['bst', 'Base Stat Total'], ['kg', 'Weight (kg)'], ['dex', 'National Dex #']];
+const STAT_OPTS = [...STATS.map(k => [k, ({ hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Attack', spd: 'Sp. Defense', spe: 'Speed' })[k]]), ['total', 'Stats Total'], ['kg', 'Weight (kg)'], ['dex', 'National Dex #']];
+const MATCH_OPTS = [['xweak', 'Extremely weak to'], ['weak', 'Weak to'], ['resists', 'Resists'], ['xresists', 'Doubly resists'], ['immune', 'Immune to']];
 const MNUM_OPTS = [['bp', 'Base power'], ['acc', 'Accuracy'], ['pp', 'PP'], ['prio', 'Priority']];
 const MODE_OPTS = [['=', 'equal to'], ['<', 'less than'], ['>', 'greater than'], ['<=', 'less than or equal to'], ['>=', 'greater than or equal to'], ['!=', 'not equal to']];
 const quote = v => /[\s"():<>=!\/]/.test(v) || v === '' ? JSON.stringify(v) : v;
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const ICONS = { name: 'M3 5h18v14H3z M7 9h6 M7 13h10', text: 'M4 5h16 M4 9h16 M4 13h10 M4 17h7', type: 'M20 12l-8 8-8-8 8-8z', ability: 'M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7z', move: 'M5 12h14 M13 6l6 6-6 6', stat: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2', forme: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 8v8 M8 12h8', reg: 'M5 4h14v16H5z M9 4v16 M13 9h3 M13 13h3', match: 'M12 3l9 5-9 5-9-5z M3 13l9 5 9-5', cat: 'M4 6h16 M4 12h16 M4 18h16', crit: 'M9 6h11 M9 12h11 M9 18h11 M4 6h1 M4 12h1 M4 18h1', num: 'M4 7h16 M4 12h16 M4 17h16 M8 4v16 M16 4v16', flag: 'M5 21V4h12l-2 4 2 4H5', target: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z', lb: 'M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z M8 7h7', item: 'M6 8h12l1 12H5z M9 8V6a3 3 0 0 1 6 0v2', pref: 'M14 4l6 6-9 9H5v-6z M12 6l6 6', kinds: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z' };
 const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[k]}"/></svg>`;
-function emptyForm() { return { kinds: new Set(KINDS), name: '', text: '', types: [], typeMode: 'all', abilities: [], moves: [], stats: [{ stat: 'spe', op: '>=', val: '' }], formes: { base: true, mega: true }, regStatus: 'legal', weak: '', resists: '', immune: '', cats: new Set(), crit: [], mnums: [{ stat: 'bp', op: '>=', val: '' }], flags: [], target: 'any', cls: '', lb: '', icats: new Set(), iclass: 'any', view: 'grid', order: '', dir: '', also: [] }; }
+function emptyForm() { return { kinds: new Set(KINDS), name: '', text: '', types: [], typeMode: 'all', abilities: [], moves: [], stats: [{ stat: 'spe', op: '>=', val: '' }], formes: { base: true, mega: true }, regStatus: 'legal', matchups: [{ rel: 'weak', type: '' }], cats: new Set(), crit: [], mnums: [{ stat: 'bp', op: '>=', val: '' }], flags: [], target: 'any', cls: '', lb: '', icats: new Set(), iclass: 'any', view: 'grid', order: '', dir: '', also: [] }; }
 function buildQuery(fs) {
   const t = []; const tok = (arr, field, q) => arr.forEach(x => t.push((x.neg ? '-' : '') + field + ':' + (q ? quote(x.v) : x.v)));
   const k = [...fs.kinds]; if (k.length === 1) t.push('kind:' + k[0]); else if (k.length === 2 || k.length === 3) t.push('(' + k.map(x => 'kind:' + x).join(' or ') + ')');
@@ -350,7 +353,7 @@ function buildQuery(fs) {
   tok(fs.abilities, 'a', true); tok(fs.moves, 'm', true);
   fs.stats.filter(r => r.val !== '' && Number.isFinite(Number(r.val))).forEach(r => t.push(`${r.stat}${r.op}${r.val}`));
   if (fs.formes.mega && !fs.formes.base) t.push('is:mega'); else if (fs.formes.base && !fs.formes.mega) t.push('-is:mega');
-  if (fs.weak) t.push('weak:' + fs.weak); if (fs.resists) t.push('resists:' + fs.resists); if (fs.immune) t.push('immune:' + fs.immune);
+  fs.matchups.filter(r => r.type).forEach(r => t.push(`${r.rel}:${r.type}`));
   const c = [...fs.cats]; if (c.length === 1) t.push('cat:' + c[0]); else if (c.length === 2) t.push('(' + c.map(x => 'cat:' + x).join(' or ') + ')');
   tok(fs.crit, 'is', false);
   fs.mnums.filter(r => r.val !== '' && Number.isFinite(Number(r.val))).forEach(r => t.push(`${r.stat}${r.op}${r.val}`));
@@ -365,7 +368,7 @@ function buildQuery(fs) {
 }
 function astText(n) { if (!n) return ''; if (n.type === 'word') return quote(n.v); if (n.type === 'term') return n.field + n.op + (n.isRegex ? '/' + n.val + '/' : quote(n.val)); if (n.type === 'not') return '-' + astText(n.node); if (n.type === 'or') return '(' + n.items.map(astText).join(' or ') + ')'; return n.items.map(astText).join(' '); }
 function queryToForm(q) {
-  const fs = emptyForm(); fs.stats = []; fs.mnums = [];
+  const fs = emptyForm(); fs.stats = []; fs.mnums = []; fs.matchups = [];
   let ast; try { ast = parse(q); } catch (e) { fs.also = [q]; return fs; }
   if (!ast) return fs;
   const items = ast.type === 'and' ? ast.items : [ast];
@@ -397,7 +400,7 @@ function queryToForm(q) {
     else if (f === 'o' && tm.op === ':') fs.text = tm.isRegex ? '/' + v + '/' : v;
     else if (statKeys.has(f) && tm.op !== ':') fs.stats.push({ stat: f, op: tm.op, val: v });
     else if (mnumKeys.has(f) && tm.op !== ':') fs.mnums.push({ stat: f, op: tm.op, val: v });
-    else if (['weak', 'resists', 'immune'].includes(f) && tm.op === ':' && IDX.types.includes(vn)) fs[f] = vn;
+    else if (MATCH_OPTS.some(m => m[0] === f) && tm.op === ':' && IDX.types.includes(vn)) fs.matchups.push({ rel: f, type: vn });
     else if (f === 'cat' && tm.op === ':' && isCatVal(v)) fs.cats.add(vn);
     else if (f === 'cat' && tm.op === ':' && IDX_ITEM_CATS.map(norm).includes(vn)) fs.icats.add(IDX_ITEM_CATS.find(c => norm(c) === vn));
     else if (f === 'target' && tm.op === ':' && ['spread', 'single'].includes(vn)) fs.target = vn;
@@ -407,7 +410,7 @@ function queryToForm(q) {
     else if (f === 'dir' && tm.op === ':') fs.dir = vn;
     else fs.also.push(astText(it));
   }
-  fs.stats.push({ stat: 'spe', op: '>=', val: '' }); fs.mnums.push({ stat: 'bp', op: '>=', val: '' });
+  fs.stats.push({ stat: 'spe', op: '>=', val: '' }); fs.mnums.push({ stat: 'bp', op: '>=', val: '' }); fs.matchups.push({ rel: 'weak', type: '' });
   return fs;
 }
 let FS = null;
@@ -428,7 +431,9 @@ function closeMenu() { if (MENU.menu) MENU.menu.hidden = true; MENU = { key: nul
 function moveHi(d) { if (!MENU.menu || !MENU.rows.length) return; MENU.hi = Math.max(0, Math.min(MENU.rows.length - 1, MENU.hi + d)); [...MENU.menu.querySelectorAll('.tok-menu-row')].forEach((r, i) => { r.classList.toggle('hi', i === MENU.hi); if (i === MENU.hi) r.scrollIntoView({ block: 'nearest' }); }); }
 function pick(input, v) { const key = input.dataset.tkin; if (input.dataset.single) { input.value = v; closeMenu(); readForm(); return; } if (addToken(key, v)) { closeMenu(); rerenderTokens(key); const nin = $(`[data-tkin="${key}"]`); if (nin) nin.focus(); } }
 function dupRow(kind, r, i, opts) { return `<div class="band dup" data-row="${kind}" data-i="${i}"><select class="form-input auto small-select" data-f="stat">${opts.map(([v, l]) => `<option value="${v}" ${v === r.stat ? 'selected' : ''}>${l}</option>`).join('')}</select><select class="form-input auto small-select" data-f="op">${MODE_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.op ? 'selected' : ''}>${l}</option>`).join('')}</select><input type="number" class="form-input auto small-select" data-f="val" value="${esc(r.val)}" placeholder="Any value, e.g. “100”"></div>`; }
-function typeSel(name, val) { return `<select class="form-input auto small-select" data-fs="${name}"><option value="">${({ weak: 'Weak to…', resists: 'Resists…', immune: 'Immune to…' })[name]}</option>${IDX.types.map(t => `<option value="${t}" ${t === val ? 'selected' : ''}>${cap(t)}</option>`).join('')}</select>`; }
+const pill = t => t ? `<span class="chip type-${t}">${t}</span>` : `<span class="pill-none">Type…</span>`;
+function pillSelect(attrs, val) { return `<div class="pillsel" ${attrs}><button type="button" class="form-input auto pill-btn" data-pillbtn>${pill(val)}</button><div class="tok-menu pill-menu" hidden><div class="tok-menu-group">Types</div>${IDX.types.map(t => `<div class="tok-menu-row ${t === val ? 'hi' : ''}" data-pillpick="${t}">${pill(t)}</div>`).join('')}</div></div>`; }
+function matchRow(r, i) { return `<div class="band dup" data-row="matchups" data-i="${i}"><select class="form-input auto small-select" data-f="rel">${MATCH_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.rel ? 'selected' : ''}>${l}</option>`).join('')}</select>${pillSelect(`data-f="type" data-val="${esc(r.type)}"`, r.type)}</div>`; }
 function advForm() {
   const fs = FS; const on = k => fs.kinds.has(k);
   const row = (ic, label, kind, bands, tip, short) => `<div class="form-row" ${kind && !on(kind) ? 'hidden' : ''} data-sec="${kind || ''}"><label class="form-row-label ${short ? 'short' : ''}">${icon(ic)} ${label}</label><div class="form-row-content">${bands}${tip ? `<p class="form-row-tip">${tip}</p>` : ''}</div></div>`;
@@ -440,10 +445,10 @@ function advForm() {
   ${row('type', 'Types', 'species', band(tokens('types')) + band(sel('typeMode', [['all', 'Including these types'], ['exact', 'Exactly these types'], ['any', 'Any of these types']], fs.typeMode)), 'Choose any type to match. Click the “IS” or “NOT” button to toggle between including and excluding a type. Moves match on their own type.')}
   ${row('ability', 'Abilities', 'species', band(tokens('abilities')), 'Any slot, hidden abilities included. “NOT” excludes Pokémon that have it.')}
   ${row('move', 'Learns', 'species', band(tokens('moves')), 'Every “IS” move must be in the learnset; “NOT” moves must not be.')}
-  ${row('stat', 'Stats', 'species', `<div id="stats-rows">${fs.stats.map((r, i) => dupRow('stats', r, i, STAT_OPTS)).join('')}</div>`, 'Restrict Pokémon based on their presented stats — the in-game Level 50 numbers. “Base” options use base stats.')}
+  ${row('stat', 'Stats', 'species', `<div id="stats-rows">${fs.stats.map((r, i) => dupRow('stats', r, i, STAT_OPTS)).join('')}</div>`, 'Restrict Pokémon based on their in-game stats (Level 50, 0 Stat Points, neutral alignment). Stats Total is the sum of the six.')}
   ${row('forme', 'Formes', 'species', band(cb('data-forme', 'base', 'Base formes', fs.formes.base) + cb('data-forme', 'mega', 'Mega formes', fs.formes.mega)), 'Include or exclude Mega formes, which are listed as their own entries.', true)}
   ${row('reg', 'Regulation', null, band(sel('regStatus', [['legal', 'Legal'], ['new', 'Newly legal'], ['removed', 'Removed']], fs.regStatus, 'medium-select') + `<select class="form-input auto medium-select" disabled><option>${esc(IDX.meta.regulation.regulation)}</option></select>`), 'Only the current regulation is loaded in this prototype; “Newly legal” and “Removed” arrive with regulation history.', true)}
-  ${row('match', 'Matchups', 'species', band(typeSel('weak', fs.weak) + typeSel('resists', fs.resists) + typeSel('immune', fs.immune)), 'From the type chart only — abilities such as Levitate are not applied.')}
+  ${row('match', 'Matchups', 'species', `<div id="matchups-rows">${fs.matchups.map(matchRow).join('')}</div>`, 'Defensive matchups from the type chart only — abilities such as Levitate are not applied. Choosing a type adds another row.')}
   ${row('cat', 'Category', 'move', band(['physical', 'special', 'status'].map(c => cb('data-cat', c, cap(c), fs.cats.has(c))).join('')), 'Only return moves of the selected categories.', true)}
   ${row('num', 'Move numbers', 'move', `<div id="mnums-rows">${fs.mnums.map((r, i) => dupRow('mnums', r, i, MNUM_OPTS)).join('')}</div>`, 'Base power, accuracy, PP (Champions values) and priority. Moves that never miss count as accuracy above 100.')}
   ${row('flag', 'Flags', 'move', band(tokens('flags')), 'Contact, protect, sound, punch, bite, pulse, bullet, slicing, wind, powder… Click “IS” / “NOT” to include or exclude.')}
@@ -465,12 +470,14 @@ function readForm() {
   fs.cats = new Set([...f.querySelectorAll('[data-cat]')].filter(x => x.checked).map(x => x.dataset.cat));
   fs.icats = new Set([...f.querySelectorAll('[data-icat]')].filter(x => x.checked).map(x => x.dataset.icat));
   for (const kind of ['stats', 'mnums']) fs[kind] = [...f.querySelectorAll(`[data-row="${kind}"]`)].map(r => ({ stat: r.querySelector('[data-f=stat]').value, op: r.querySelector('[data-f=op]').value, val: r.querySelector('[data-f=val]').value }));
+  fs.matchups = [...f.querySelectorAll('[data-row="matchups"]')].map(r => ({ rel: r.querySelector('[data-f=rel]').value, type: r.querySelector('[data-f=type]').dataset.val || '' }));
   for (const sec of f.querySelectorAll('.form-row[data-sec]')) if (sec.dataset.sec) sec.hidden = !fs.kinds.has(sec.dataset.sec);
   // duplicant: keep exactly one empty trailing row
   for (const kind of ['stats', 'mnums']) { const rows = fs[kind]; const empties = rows.filter(r => r.val === '').length; if (empties === 0) { rows.push({ stat: kind === 'stats' ? 'spe' : 'bp', op: '>=', val: '' }); rerenderRows(kind, true); } }
+  if (!fs.matchups.some(r => !r.type)) { fs.matchups.push({ rel: 'weak', type: '' }); rerenderRows('matchups'); }
   updatePreview();
 }
-function updatePreview() { const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || ''; const go = $('#go'); if (go) go.disabled = !q; }
+function updatePreview() { if (!FS) return; const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || ''; const go = $('#go'); if (go) go.disabled = !q; }
 function submitForm() { readForm(); const q = buildQuery(FS); if (!q) return; nav(qlink(q) + (FS.view === 'list' ? '&view=list' : '')); }
 function addToken(key, raw) {
   const v = raw.trim(); if (!v) return false; let val = v;
@@ -495,16 +502,19 @@ function bindForm() {
     if (ev.key === 'Escape') { closeMenu(); return; }
     if (ev.key === 'Enter') { ev.preventDefault(); if (MENU.rows.length && MENU.hi >= 0) pick(t, MENU.rows[MENU.hi][0]); else if (t.dataset.single) { closeMenu(); readForm(); } else if (addToken(t.dataset.tkin, t.value)) { closeMenu(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } return; }
     if (ev.key === 'Backspace' && !t.value && !t.dataset.single && FS[t.dataset.tkin].length) { FS[t.dataset.tkin].pop(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } });
-  f.addEventListener('pointerdown', ev => { const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); const input = r.closest('.tok-wrap').querySelector('.tok-in'); pick(input, r.dataset.pick); } });
+  f.addEventListener('pointerdown', ev => { const pp = ev.target.closest('[data-pillpick]'); if (pp) { ev.preventDefault(); const ps = pp.closest('.pillsel'); ps.dataset.val = pp.dataset.pillpick; ps.querySelector('.pill-btn').innerHTML = pill(pp.dataset.pillpick); ps.querySelector('.pill-menu').hidden = true; readForm(); return; }
+    const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); const input = r.closest('.tok-wrap').querySelector('.tok-in'); pick(input, r.dataset.pick); } });
   f.addEventListener('click', ev => {
     const pol = ev.target.closest('[data-pol]'); if (pol) { const x = FS[pol.dataset.pol][Number(pol.dataset.i)]; x.neg = !x.neg; rerenderTokens(pol.dataset.pol); return; }
     const tx = ev.target.closest('[data-tx]'); if (tx) { FS[tx.dataset.tx].splice(Number(tx.dataset.i), 1); rerenderTokens(tx.dataset.tx); return; }
     if (ev.target.classList.contains('tokens')) ev.target.querySelector('.tok-in')?.focus();
+    const pb = ev.target.closest('[data-pillbtn]'); if (pb) { const menu = pb.nextElementSibling; const open = menu.hidden; f.querySelectorAll('.pill-menu').forEach(m => m.hidden = true); menu.hidden = !open; return; }
+    if (!ev.target.closest('.pillsel')) f.querySelectorAll('.pill-menu').forEach(m => m.hidden = true);
   });
   f.addEventListener('submit', ev => { ev.preventDefault(); submitForm(); });
   $('#reset').addEventListener('click', () => { FS = emptyForm(); history.replaceState('app', '', location.pathname); render(); });
 }
-function rerenderRows(k, keepFocus) { const box = $('#' + k + '-rows'); if (!box) return; const active = document.activeElement; const idx = active && active.closest ? active.closest('[data-row]')?.dataset.i : null; const fld = active && active.dataset ? active.dataset.f : null; box.innerHTML = FS[k].map((r, i) => dupRow(k, r, i, k === 'stats' ? STAT_OPTS : MNUM_OPTS)).join(''); if (keepFocus && idx != null && fld) { const el = box.querySelector(`[data-row="${k}"][data-i="${idx}"] [data-f="${fld}"]`); if (el) { el.focus(); if (el.type === 'number' || el.type === 'text') { const L = el.value.length; try { el.setSelectionRange(L, L); } catch (e) {} } } } updatePreview(); }
+function rerenderRows(k, keepFocus) { const box = $('#' + k + '-rows'); if (!box) return; const active = document.activeElement; const idx = active && active.closest ? active.closest('[data-row]')?.dataset.i : null; const fld = active && active.dataset ? active.dataset.f : null; box.innerHTML = k === 'matchups' ? FS[k].map(matchRow).join('') : FS[k].map((r, i) => dupRow(k, r, i, k === 'stats' ? STAT_OPTS : MNUM_OPTS)).join(''); if (keepFocus && idx != null && fld) { const el = box.querySelector(`[data-row="${k}"][data-i="${idx}"] [data-f="${fld}"]`); if (el) { el.focus(); if (el.type === 'number' || el.type === 'text') { const L = el.value.length; try { el.setSelectionRange(L, L); } catch (e) {} } } } updatePreview(); }
 
 // ----- render + events -----
 function render() {
