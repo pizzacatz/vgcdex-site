@@ -103,8 +103,9 @@ dl.eff{display:grid;grid-template-columns:80px 1fr;gap:6px 10px;margin:0;align-i
 .form-row-content{width:80%;max-width:100%;display:flex;flex-flow:column nowrap;align-items:flex-start}
 .band{max-width:100%;width:100%;display:flex;flex-flow:row wrap;align-items:center;gap:6px 8px;padding:5px 0}.band.cbs{gap:0}
 .band .form-input.small-select,.band .form-input.medium-select{max-width:none;margin-right:0}
+.subhead{font-size:12px;color:var(--muted);margin:4px 0 0;font-style:italic}.matchline{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}.matchline .mc{font-size:.7rem;padding:2px 7px}table.list .matchline{margin:0;padding:0;border:0}
 .kind-sep{width:100%;padding:18px 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--line)}
-#stats-rows,#mnums-rows,#matchups-rows{width:560px;max-width:100%}.dup{display:flex;flex-flow:row nowrap;align-items:center;gap:8px;padding:4px 0;width:100%}.dup>select.form-input,.dup>.pillsel{flex:0 0 auto;width:auto;margin:0}.dup>input[type=number]{flex:1 1 60px;width:auto;min-width:60px}.pillsel>.pill-btn{width:150px;min-width:150px;justify-content:flex-start}
+#stats-rows,#mnums-rows,#matchups-rows,#msubs-rows{width:560px;max-width:100%}.dup{display:flex;flex-flow:row nowrap;align-items:center;gap:8px;padding:4px 0;width:100%}.dup>select.form-input,.dup>.pillsel{flex:0 0 auto;width:auto;margin:0}.dup>input[type=number]{flex:1 1 60px;width:auto;min-width:60px}.pillsel>.pill-btn.form-input.auto{width:150px;min-width:150px;justify-content:flex-start}
 .form-row-tip{width:100%;margin:2px 0 0;font-size:12px;color:var(--muted);font-style:italic;max-width:620px;line-height:1.5}
 .form-input{font:inherit;background:var(--field);border-radius:2px;border:1px solid var(--field-line);color:var(--text);font-size:16px;height:38px;line-height:20px;padding:8px 10px;transition:background-color 60ms linear,border-color 60ms linear,box-shadow 60ms linear;width:560px;max-width:100%}
 .form-input:focus{outline:none;box-shadow:0 0 3px var(--field-line);border-color:var(--accent)}
@@ -137,7 +138,7 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 .qpreview{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--accent);padding:4px 0}.qpreview:empty::before{content:'Fill in the form to build a search';color:var(--muted);font-style:italic;font-family:Inter,sans-serif}
 @media (max-width:700px){.submit-bar{flex-wrap:wrap;gap:8px}.qpreview{flex-basis:100%;order:-1;font-size:12px;padding:0}.reset-n{margin-right:auto}}
 .also code{color:var(--accent)}.editadv{font-size:.85rem;margin-left:8px}
-@media (max-width:700px){.form-row-label{width:100%;min-width:0;height:auto;padding:0 0 6px}.form-row-label.short{height:auto}.form-row-content{width:100%}.form-input,.tok-wrap,#stats-rows,#mnums-rows,#matchups-rows{width:100%;max-width:none;min-width:0}.form-input.auto,select.form-input{width:auto}.dup>select.form-input{flex:0 1 auto;min-width:0;font-size:14px;padding:8px 24px 8px 8px;background-position:right 6px center}.dup>input[type=number]{flex:1 1 60px;padding-right:8px}.pillsel>.pill-btn{width:132px;min-width:132px}.dup>input[type=number]{min-width:72px}.asc{margin-bottom:8px}
+@media (max-width:700px){.form-row-label{width:100%;min-width:0;height:auto;padding:0 0 6px}.form-row-label.short{height:auto}.form-row-content{width:100%}.form-input,.tok-wrap,#stats-rows,#mnums-rows,#matchups-rows,#msubs-rows{width:100%;max-width:none;min-width:0}.form-input.auto,select.form-input{width:auto}.dup>select.form-input{flex:0 1 auto;min-width:0;font-size:14px;padding:8px 24px 8px 8px;background-position:right 6px center}.dup>input[type=number]{flex:1 1 60px;padding-right:8px}.pillsel>.pill-btn.form-input.auto{width:132px;min-width:132px}.dup>input[type=number]{min-width:72px}.asc{margin-bottom:8px}
 .tok{height:44px;gap:8px}.tok-x{width:36px;height:36px;font-size:18px}.pol{height:36px;width:48px;font-size:12px}.tok-in{height:36px}.tok-menu-row{min-height:44px;display:flex;align-items:center}.pill-menu .tok-menu-row{min-height:44px}.asc{height:auto;min-height:44px}.asc input[type=checkbox]{width:30px;height:30px}}
 /* ---- footer ---- */
 .foot{background:var(--gpe-black);color:#cfc4ba;font-size:.8rem;padding:28px 0;margin-top:30px;border-top:1px solid var(--gpe-surface)}.foot b{color:#fff}.foot code{color:var(--gpe-gold)}
@@ -149,6 +150,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260915194950"></script>
+<script src="app.js?v=20260915195841"></script>
 </body>
 </html>
