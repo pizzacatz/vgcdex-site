@@ -328,29 +328,33 @@ function guide() {
   <h2>Examples</h2><div class="ex-grid">${EXAMPLES.map(([q, why]) => `<a class="ex" href="${qlink(q)}" data-nav><code>${esc(q)}</code><span>${esc(why)}</span></a>`).join('')}</div></section>`;
 }
 
-// ---------- advanced search form (home page) ----------
-const FLAG_LIST = ['contact', 'protect', 'sound', 'punch', 'bite', 'pulse', 'bullet', 'slicing', 'wind', 'powder', 'dance', 'heal', 'recharge', 'charge', 'reflectable', 'snatch', 'bypasssub', 'gravity', 'defrost', 'explosive', 'mental'];
-const STAT_OPTS = [...STATS.map(k => [k, STAT_LABEL[k]]), ...STATS.map(k => ['b' + k, 'base ' + STAT_LABEL[k]]), ['bst', 'BST']];
+// ---------- advanced search form (home page) — Scryfall /advanced structure ----------
+const FLAG_LIST = ['contact', 'protect', 'sound', 'punch', 'bite', 'pulse', 'bullet', 'slicing', 'wind', 'powder', 'dance', 'heal', 'recharge', 'charge', 'reflectable', 'snatch', 'bypasssub', 'gravity', 'defrost', 'explosive', 'mental', 'mirror', 'metronome'];
+const CRIT_LIST = [['mega', 'Mega forme'], ['spread', 'Spread move'], ['variable', 'Variable-power move'], ['consumable', 'Consumable item'], ['held', 'Held item']];
+const STAT_OPTS = [...STATS.map(k => [k, ({ hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Attack', spd: 'Sp. Defense', spe: 'Speed' })[k]]), ...STATS.map(k => ['b' + k, 'Base ' + ({ hp: 'HP', atk: 'Attack', def: 'Defense', spa: 'Sp. Attack', spd: 'Sp. Defense', spe: 'Speed' })[k]]), ['bst', 'Base Stat Total'], ['kg', 'Weight (kg)'], ['dex', 'National Dex #']];
 const MNUM_OPTS = [['bp', 'Base power'], ['acc', 'Accuracy'], ['pp', 'PP'], ['prio', 'Priority']];
-const OPS_UI = [['>=', '≥'], ['>', '>'], ['=', '='], ['<=', '≤'], ['<', '<'], ['!=', '≠']];
+const MODE_OPTS = [['=', 'equal to'], ['<', 'less than'], ['>', 'greater than'], ['<=', 'less than or equal to'], ['>=', 'greater than or equal to'], ['!=', 'not equal to']];
 const quote = v => /[\s"():<>=!\/]/.test(v) || v === '' ? JSON.stringify(v) : v;
-function emptyForm() { return { kinds: new Set(KINDS), name: '', text: '', types: {}, typeMode: 'all', ability: '', moves: [''], stats: [{ stat: 'spe', op: '>=', val: '' }], weak: '', resists: '', immune: '', mega: 'include', cats: new Set(), mnums: [{ stat: 'bp', op: '>=', val: '' }], flags: {}, target: 'any', cls: '', lb: '', icats: new Set(), iclass: 'any', view: 'grid', order: '', dir: '', also: [] }; }
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+const ICONS = { name: 'M3 5h18v14H3z M7 9h6 M7 13h10', text: 'M4 5h16 M4 9h16 M4 13h10 M4 17h7', type: 'M20 12l-8 8-8-8 8-8z', ability: 'M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7z', move: 'M5 12h14 M13 6l6 6-6 6', stat: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2', forme: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 8v8 M8 12h8', reg: 'M5 4h14v16H5z M9 4v16 M13 9h3 M13 13h3', match: 'M12 3l9 5-9 5-9-5z M3 13l9 5 9-5', cat: 'M4 6h16 M4 12h16 M4 18h16', crit: 'M9 6h11 M9 12h11 M9 18h11 M4 6h1 M4 12h1 M4 18h1', num: 'M4 7h16 M4 12h16 M4 17h16 M8 4v16 M16 4v16', flag: 'M5 21V4h12l-2 4 2 4H5', target: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z', lb: 'M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z M8 7h7', item: 'M6 8h12l1 12H5z M9 8V6a3 3 0 0 1 6 0v2', pref: 'M14 4l6 6-9 9H5v-6z M12 6l6 6', kinds: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z' };
+const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[k]}"/></svg>`;
+function emptyForm() { return { kinds: new Set(KINDS), name: '', text: '', types: [], typeMode: 'all', abilities: [], moves: [], stats: [{ stat: 'spe', op: '>=', val: '' }], formes: { base: true, mega: true }, regStatus: 'legal', weak: '', resists: '', immune: '', cats: new Set(), crit: [], mnums: [{ stat: 'bp', op: '>=', val: '' }], flags: [], target: 'any', cls: '', lb: '', icats: new Set(), iclass: 'any', view: 'grid', order: '', dir: '', also: [] }; }
 function buildQuery(fs) {
-  const t = [];
+  const t = []; const tok = (arr, field, q) => arr.forEach(x => t.push((x.neg ? '-' : '') + field + ':' + (q ? quote(x.v) : x.v)));
   const k = [...fs.kinds]; if (k.length === 1) t.push('kind:' + k[0]); else if (k.length === 2 || k.length === 3) t.push('(' + k.map(x => 'kind:' + x).join(' or ') + ')');
   if (fs.name.trim()) t.push(quote(fs.name.trim()));
   if (fs.text.trim()) t.push(/^\/.*\/$/.test(fs.text.trim()) ? 'o:' + fs.text.trim() : 'o:' + quote(fs.text.trim()));
-  const inc = Object.keys(fs.types).filter(x => fs.types[x] === 1), exc = Object.keys(fs.types).filter(x => fs.types[x] === -1);
+  const inc = fs.types.filter(x => !x.neg).map(x => x.v), exc = fs.types.filter(x => x.neg).map(x => x.v);
   if (inc.length) { if (fs.typeMode === 'exact') t.push('t=' + inc.slice(0, 2).join('/')); else if (fs.typeMode === 'any' && inc.length > 1) t.push('(' + inc.map(x => 't:' + x).join(' or ') + ')'); else inc.forEach(x => t.push('t:' + x)); }
   exc.forEach(x => t.push('-t:' + x));
-  if (fs.ability.trim()) t.push('a:' + quote(fs.ability.trim()));
-  fs.moves.filter(m => m.trim()).forEach(m => t.push('m:' + quote(m.trim())));
+  tok(fs.abilities, 'a', true); tok(fs.moves, 'm', true);
   fs.stats.filter(r => r.val !== '' && Number.isFinite(Number(r.val))).forEach(r => t.push(`${r.stat}${r.op}${r.val}`));
+  if (fs.formes.mega && !fs.formes.base) t.push('is:mega'); else if (fs.formes.base && !fs.formes.mega) t.push('-is:mega');
   if (fs.weak) t.push('weak:' + fs.weak); if (fs.resists) t.push('resists:' + fs.resists); if (fs.immune) t.push('immune:' + fs.immune);
-  if (fs.mega === 'only') t.push('is:mega'); else if (fs.mega === 'exclude') t.push('-is:mega');
   const c = [...fs.cats]; if (c.length === 1) t.push('cat:' + c[0]); else if (c.length === 2) t.push('(' + c.map(x => 'cat:' + x).join(' or ') + ')');
+  tok(fs.crit, 'is', false);
   fs.mnums.filter(r => r.val !== '' && Number.isFinite(Number(r.val))).forEach(r => t.push(`${r.stat}${r.op}${r.val}`));
-  for (const f of Object.keys(fs.flags)) if (fs.flags[f] === 1) t.push('flag:' + f); else if (fs.flags[f] === -1) t.push('-flag:' + f);
+  tok(fs.flags, 'flag', false);
   if (fs.target !== 'any') t.push('target:' + fs.target);
   if (fs.cls) t.push('class:' + quote(fs.cls));
   if (fs.lb.trim()) t.push('lb:' + quote(fs.lb.trim()));
@@ -361,121 +365,131 @@ function buildQuery(fs) {
 }
 function astText(n) { if (!n) return ''; if (n.type === 'word') return quote(n.v); if (n.type === 'term') return n.field + n.op + (n.isRegex ? '/' + n.val + '/' : quote(n.val)); if (n.type === 'not') return '-' + astText(n.node); if (n.type === 'or') return '(' + n.items.map(astText).join(' or ') + ')'; return n.items.map(astText).join(' '); }
 function queryToForm(q) {
-  const fs = emptyForm(); fs.moves = []; fs.stats = []; fs.mnums = [];
+  const fs = emptyForm(); fs.stats = []; fs.mnums = [];
   let ast; try { ast = parse(q); } catch (e) { fs.also = [q]; return fs; }
   if (!ast) return fs;
   const items = ast.type === 'and' ? ast.items : [ast];
   const statKeys = new Set(STAT_OPTS.map(x => x[0])), mnumKeys = new Set(MNUM_OPTS.map(x => x[0]));
   const isCatVal = v => ['physical', 'special', 'status'].includes(norm(v));
+  const byName = (kind, v) => { const e = IDX.ents.find(x => x.kind === kind && (x.norm === norm(v) || x.compact === compact(v))); return e ? e.name : v; };
   for (const it of items) {
     if (it.type === 'word') { fs.name = (fs.name + ' ' + it.v).trim(); continue; }
     if (it.type === 'or' && it.items.every(x => x.type === 'term' && x.op === ':' && !x.isRegex)) {
       const fields = new Set(it.items.map(x => F[x.field] && F[x.field].name)); const vals = it.items.map(x => x.val);
       if (fields.size === 1 && fields.has('kind') && vals.every(v => KINDS.includes(norm(v)))) { fs.kinds = new Set(vals.map(norm)); continue; }
-      if (fields.size === 1 && fields.has('t') && vals.every(v => IDX.types.includes(norm(v)))) { vals.forEach(v => fs.types[norm(v)] = 1); fs.typeMode = 'any'; continue; }
+      if (fields.size === 1 && fields.has('t') && vals.every(v => IDX.types.includes(norm(v)))) { vals.forEach(v => fs.types.push({ v: norm(v), neg: false })); fs.typeMode = 'any'; continue; }
       if (fields.size === 1 && fields.has('cat')) { if (vals.every(isCatVal)) { vals.forEach(v => fs.cats.add(norm(v))); continue; } if (vals.every(v => IDX_ITEM_CATS.map(norm).includes(norm(v)))) { vals.forEach(v => fs.icats.add(IDX_ITEM_CATS.find(c => norm(c) === norm(v)))); continue; } }
       fs.also.push(astText(it)); continue; }
     const neg = it.type === 'not'; const tm = neg ? it.node : it;
     if (tm.type !== 'term' || !F[tm.field]) { fs.also.push(astText(it)); continue; }
     const f = F[tm.field].name, v = tm.val, vn = norm(v);
     if (tm.isRegex && f !== 'o') { fs.also.push(astText(it)); continue; }
-    if (neg) { if (f === 't' && tm.op === ':' && IDX.types.includes(vn)) fs.types[vn] = -1; else if (f === 'flag' && tm.op === ':') fs.flags[vn] = -1; else if (f === 'is' && vn === 'mega') fs.mega = 'exclude'; else fs.also.push(astText(it)); continue; }
-    if (f === 'kind' && KINDS.includes(vn)) fs.kinds = new Set([vn]);
-    else if (f === 'name' && (tm.op === ':')) fs.name = (fs.name + ' ' + v).trim();
+    if (f === 't' && tm.op === ':' && IDX.types.includes(vn)) { fs.types.push({ v: vn, neg }); if (!neg && fs.typeMode === 'any') fs.typeMode = 'all'; }
+    else if (f === 't' && tm.op === '=' && !neg && v.split(/[\/,+]/).every(x => IDX.types.includes(norm(x)))) { v.split(/[\/,+]/).forEach(x => fs.types.push({ v: norm(x), neg: false })); fs.typeMode = 'exact'; }
+    else if (f === 'a' && tm.op === ':') fs.abilities.push({ v: byName('ability', v), neg });
+    else if (f === 'm' && tm.op === ':') fs.moves.push({ v: byName('move', v), neg });
+    else if (f === 'flag' && tm.op === ':') fs.flags.push({ v: vn, neg });
+    else if (f === 'is' && vn === 'mega') { fs.formes = neg ? { base: true, mega: false } : { base: false, mega: true }; }
+    else if (f === 'is' && CRIT_LIST.some(c => c[0] === vn)) fs.crit.push({ v: vn, neg });
+    else if (neg) fs.also.push(astText(it));
+    else if (f === 'kind' && KINDS.includes(vn)) fs.kinds = new Set([vn]);
+    else if (f === 'name' && tm.op === ':') fs.name = (fs.name + ' ' + v).trim();
     else if (f === 'o' && tm.op === ':') fs.text = tm.isRegex ? '/' + v + '/' : v;
-    else if (f === 't' && tm.op === '=' && v.split(/[\/,+]/).every(x => IDX.types.includes(norm(x)))) { v.split(/[\/,+]/).forEach(x => fs.types[norm(x)] = 1); fs.typeMode = 'exact'; }
-    else if (f === 't' && tm.op === ':' && IDX.types.includes(vn)) { fs.types[vn] = 1; if (fs.typeMode === 'any') fs.typeMode = 'all'; }
-    else if (f === 'a' && tm.op === ':') fs.ability = v;
-    else if (f === 'm' && tm.op === ':') fs.moves.push(v);
     else if (statKeys.has(f) && tm.op !== ':') fs.stats.push({ stat: f, op: tm.op, val: v });
     else if (mnumKeys.has(f) && tm.op !== ':') fs.mnums.push({ stat: f, op: tm.op, val: v });
     else if (['weak', 'resists', 'immune'].includes(f) && tm.op === ':' && IDX.types.includes(vn)) fs[f] = vn;
-    else if (f === 'is' && vn === 'mega') fs.mega = 'only';
-    else if (f === 'is' && (vn === 'consumable' || vn === 'held')) fs.iclass = vn;
-    else if (f === 'is' && vn === 'spread') fs.target = 'spread';
     else if (f === 'cat' && tm.op === ':' && isCatVal(v)) fs.cats.add(vn);
     else if (f === 'cat' && tm.op === ':' && IDX_ITEM_CATS.map(norm).includes(vn)) fs.icats.add(IDX_ITEM_CATS.find(c => norm(c) === vn));
-    else if (f === 'flag' && tm.op === ':') fs.flags[vn] = 1;
     else if (f === 'target' && tm.op === ':' && ['spread', 'single'].includes(vn)) fs.target = vn;
     else if (f === 'class' && tm.op === ':') fs.cls = IDX.classes.find(c => norm(c) === vn) || v;
-    else if (f === 'lb' && tm.op === ':') fs.lb = v;
+    else if (f === 'lb' && tm.op === ':') fs.lb = byName('species', v);
     else if (f === 'order' && tm.op === ':') fs.order = vn;
     else if (f === 'dir' && tm.op === ':') fs.dir = vn;
     else fs.also.push(astText(it));
   }
-  if (!fs.moves.length) fs.moves = ['']; if (!fs.stats.length) fs.stats = [{ stat: 'spe', op: '>=', val: '' }]; if (!fs.mnums.length) fs.mnums = [{ stat: 'bp', op: '>=', val: '' }];
+  fs.stats.push({ stat: 'spe', op: '>=', val: '' }); fs.mnums.push({ stat: 'bp', op: '>=', val: '' });
   return fs;
 }
 let FS = null;
-function tri(field, v, label, cls) { const st = (field === 't' ? FS.types : FS.flags)[v] || 0; return `<button type="button" class="tri ${cls || ''} s${st}" data-tri="${field}" data-v="${v}" aria-pressed="${st !== 0}">${label}</button>`; }
-function numRow(kind, r, i, opts) { return `<div class="nrow" data-row="${kind}" data-i="${i}"><select data-f="stat">${opts.map(([v, l]) => `<option value="${v}" ${v === r.stat ? 'selected' : ''}>${l}</option>`).join('')}</select><select data-f="op">${OPS_UI.map(([v, l]) => `<option value="${v}" ${v === r.op ? 'selected' : ''}>${l}</option>`).join('')}</select><input type="number" data-f="val" value="${esc(r.val)}" placeholder="0"><button type="button" class="rm" data-rm="${kind}" data-i="${i}" aria-label="Remove">×</button></div>`; }
-function moveRow(m, i) { return `<div class="nrow" data-row="moves" data-i="${i}"><input type="text" data-f="val" list="dl-moves" value="${esc(m)}" placeholder="e.g. Iron Head"><button type="button" class="rm" data-rm="moves" data-i="${i}" aria-label="Remove">×</button></div>`; }
-function typeSelect(name, val) { return `<select data-fs="${name}"><option value="">—</option>${IDX.types.map(t => `<option value="${t}" ${t === val ? 'selected' : ''}>${t[0].toUpperCase() + t.slice(1)}</option>`).join('')}</select>`; }
+// --- controls ---
+const sel = (name, opts, cur, cls) => `<select class="form-input auto ${cls || ''}" data-fs="${name}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+const cb = (attr, val, label, on) => `<label class="asc"><input type="checkbox" ${attr}="${esc(val)}" ${on ? 'checked' : ''}> ${label}</label>`;
+function tokens(key, list, placeholder, labelOf) { const fs = FS; return `<div class="tokens" data-tk="${key}">${fs[key].map((x, i) => `<span class="tok"><button type="button" class="pol ${x.neg ? 'not' : 'is'}" data-pol="${key}" data-i="${i}" title="Toggle include / exclude">${x.neg ? 'NOT' : 'IS'}</button><span class="tok-l">${esc(labelOf ? labelOf(x.v) : x.v)}</span><button type="button" class="tok-x" data-tx="${key}" data-i="${i}" aria-label="Remove">×</button></span>`).join('')}<input type="text" class="tok-in" data-tkin="${key}" list="dl-${key}" placeholder="${esc(placeholder)}" autocomplete="off"></div>`; }
+function dupRow(kind, r, i, opts) { return `<div class="band dup" data-row="${kind}" data-i="${i}"><select class="form-input auto small-select" data-f="stat">${opts.map(([v, l]) => `<option value="${v}" ${v === r.stat ? 'selected' : ''}>${l}</option>`).join('')}</select><select class="form-input auto small-select" data-f="op">${MODE_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.op ? 'selected' : ''}>${l}</option>`).join('')}</select><input type="number" class="form-input auto small-select" data-f="val" value="${esc(r.val)}" placeholder="Any value, e.g. “100”"></div>`; }
+function typeSel(name, val) { return `<select class="form-input auto small-select" data-fs="${name}"><option value="">${({ weak: 'Weak to…', resists: 'Resists…', immune: 'Immune to…' })[name]}</option>${IDX.types.map(t => `<option value="${t}" ${t === val ? 'selected' : ''}>${cap(t)}</option>`).join('')}</select>`; }
 function advForm() {
-  const fs = FS; const row = (label, ctl, help) => `<div class="frow"><label>${label}</label><div class="fctl">${ctl}${help ? `<small>${help}</small>` : ''}</div></div>`;
-  const kindsOn = k => fs.kinds.has(k);
-  return `<section class="wrap adv"><div class="qline"><span>Query</span><code id="qpreview"></code><a href="#" id="qopen" title="Open results">Search →</a></div>
-  <form id="adv">
-  <h2>Search</h2>
-  ${row('Kinds', KINDS.map(k => `<label class="cb"><input type="checkbox" data-kind="${k}" ${kindsOn(k) ? 'checked' : ''}> ${KIND_LABEL[k]}</label>`).join(''), 'Which kinds of results to include. Sections below follow this.')}
-  ${row('Name', `<input type="text" data-fs="name" value="${esc(fs.name)}" placeholder="e.g. Garchomp, iron head">`, 'Words that appear in the name. Matches every kind.')}
-  ${row('Text', `<input type="text" data-fs="text" value="${esc(fs.text)}" placeholder='e.g. flinch, or /heals?|restores?/'>`, 'Words in the description of a move, ability or item. Wrap in slashes for a regex.')}
-  <div class="sec" data-kind="species" ${kindsOn('species') ? '' : 'hidden'}><h2>Pokémon</h2>
-  ${row('Type', `<div class="tris">${IDX.types.map(t => tri('t', t, t, 'type-' + t)).join('')}</div><div class="inline"><select data-fs="typeMode"><option value="all" ${fs.typeMode === 'all' ? 'selected' : ''}>has all of these</option><option value="any" ${fs.typeMode === 'any' ? 'selected' : ''}>has any of these</option><option value="exact" ${fs.typeMode === 'exact' ? 'selected' : ''}>exactly these types</option></select></div>`, 'Click a type once to require it, twice to exclude it, again to clear.')}
-  ${row('Ability', `<input type="text" data-fs="ability" list="dl-abilities" value="${esc(fs.ability)}" placeholder="e.g. Intimidate">`, 'Has this ability in any slot.')}
-  ${row('Learns', `<div id="moves-rows">${fs.moves.map(moveRow).join('')}</div><button type="button" class="add" data-add="moves">+ add another move</button>`, 'Every listed move must be in the learnset.')}
-  ${row('Stats', `<div id="stats-rows">${fs.stats.map((r, i) => numRow('stats', r, i, STAT_OPTS)).join('')}</div><button type="button" class="add" data-add="stats">+ add another stat</button>`, 'Presented stats are the in-game Level 50 numbers; "base" rows use base stats.')}
-  ${row('Defence', `<div class="inline"><span>Weak to</span>${typeSelect('weak', fs.weak)}<span>Resists</span>${typeSelect('resists', fs.resists)}<span>Immune to</span>${typeSelect('immune', fs.immune)}</div>`, 'From the type chart only; abilities such as Levitate are not applied.')}
-  ${row('Mega formes', ['include', 'only', 'exclude'].map(v => `<label class="cb"><input type="radio" name="mega" data-fs="mega" value="${v}" ${fs.mega === v ? 'checked' : ''}> ${v[0].toUpperCase() + v.slice(1)}</label>`).join(''), '')}
-  </div>
-  <div class="sec" data-kind="move" ${kindsOn('move') ? '' : 'hidden'}><h2>Moves</h2>
-  ${row('Category', ['physical', 'special', 'status'].map(c => `<label class="cb"><input type="checkbox" data-cat="${c}" ${fs.cats.has(c) ? 'checked' : ''}> ${c[0].toUpperCase() + c.slice(1)}</label>`).join(''), '')}
-  ${row('Numbers', `<div id="mnums-rows">${fs.mnums.map((r, i) => numRow('mnums', r, i, MNUM_OPTS)).join('')}</div><button type="button" class="add" data-add="mnums">+ add another</button>`, 'Base power, accuracy, PP (Champions values), priority.')}
-  ${row('Flags', `<div class="tris">${FLAG_LIST.map(f => tri('flag', f, f)).join('')}</div>`, 'Once to require, twice to exclude.')}
-  ${row('Target', `<select data-fs="target">${[['any', 'Any'], ['spread', 'Spread (hits multiple)'], ['single', 'Single target']].map(([v, l]) => `<option value="${v}" ${fs.target === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`, '')}
-  ${row('Classification', `<select data-fs="cls"><option value="">Any</option>${IDX.classes.map(c => `<option value="${esc(c)}" ${fs.cls === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>`, 'Champions move Classifications.')}
-  ${row('Learned by', `<input type="text" data-fs="lb" list="dl-species" value="${esc(fs.lb)}" placeholder="e.g. Garchomp">`, 'Only moves this Pokémon learns.')}
-  </div>
-  <div class="sec" data-kind="item" ${kindsOn('item') ? '' : 'hidden'}><h2>Items</h2>
-  ${row('Category', IDX_ITEM_CATS.map(c => `<label class="cb"><input type="checkbox" data-icat="${esc(c)}" ${fs.icats.has(c) ? 'checked' : ''}> ${esc(c)}</label>`).join(''), '')}
-  ${row('Class', ['any', 'consumable', 'held'].map(v => `<label class="cb"><input type="radio" name="iclass" data-fs="iclass" value="${v}" ${fs.iclass === v ? 'checked' : ''}> ${v[0].toUpperCase() + v.slice(1)}</label>`).join(''), '')}
-  </div>
-  <h2>Display</h2>
-  ${row('Show as', ['grid', 'list'].map(v => `<label class="cb"><input type="radio" name="view" data-fs="view" value="${v}" ${fs.view === v ? 'checked' : ''}> ${v[0].toUpperCase() + v.slice(1)}</label>`).join(''), 'Grid shows Pokémon as cards; list shows a table.')}
-  ${row('Sort by', `<div class="inline"><select data-fs="order">${SORTS.map(([v, l]) => `<option value="${v}" ${v === fs.order ? 'selected' : ''}>${l}</option>`).join('')}</select><select data-fs="dir"><option value="">Default order</option><option value="desc" ${fs.dir === 'desc' ? 'selected' : ''}>Descending</option><option value="asc" ${fs.dir === 'asc' ? 'selected' : ''}>Ascending</option></select></div>`, '')}
-  <div class="frow also" ${fs.also.length ? '' : 'hidden'}><label>Also</label><div class="fctl"><code id="also">${esc(fs.also.join(' '))}</code><small>Terms from the typed query that this form has no control for. They stay in the search.</small></div></div>
-  <div class="frow"><label></label><div class="fctl actions"><button type="submit" class="primary" id="go">Search with these options</button><button type="button" id="reset">Reset</button><a href="?guide=1" data-nav class="tryex">Syntax guide &amp; examples</a></div></div>
+  const fs = FS; const on = k => fs.kinds.has(k);
+  const row = (ic, label, kind, bands, tip, short) => `<div class="form-row" ${kind && !on(kind) ? 'hidden' : ''} data-sec="${kind || ''}"><label class="form-row-label ${short ? 'short' : ''}">${icon(ic)} ${label}</label><div class="form-row-content">${bands}${tip ? `<p class="form-row-tip">${tip}</p>` : ''}</div></div>`;
+  const band = inner => `<div class="band">${inner}</div>`;
+  return `<section class="wrap adv"><form id="adv" class="form-layout" novalidate>
+  ${row('kinds', 'Search in', null, band(KINDS.map(k => cb('data-kind', k, KIND_LABEL[k], on(k))).join('')), 'Which kinds of results to return. The rows below follow this choice.', true)}
+  ${row('name', 'Name', null, band(`<input type="text" class="form-input" data-fs="name" value="${esc(fs.name)}" placeholder="Any words in the name, e.g. “Garchomp”">`), '')}
+  ${row('text', 'Text', null, band(`<input type="text" class="form-input" data-fs="text" value="${esc(fs.text)}" placeholder="Any text, e.g. “flinch”">`), 'Enter text that should appear in the description of a move, ability or item. Wrap it in slashes for a regular expression, e.g. /heals?|restores?/.')}
+  ${row('type', 'Types', 'species', band(tokens('types', IDX.types, 'Enter a type or choose from the list', cap)) + band(sel('typeMode', [['all', 'Including these types'], ['exact', 'Exactly these types'], ['any', 'Any of these types']], fs.typeMode)), 'Choose any type to match. Click the “IS” or “NOT” button to toggle between including and excluding a type. Moves match on their own type.')}
+  ${row('ability', 'Abilities', 'species', band(tokens('abilities', null, 'Enter an ability or choose from the list')), 'Any slot, hidden abilities included. “NOT” excludes Pokémon that have it.')}
+  ${row('move', 'Learns', 'species', band(tokens('moves', null, 'Enter a move or choose from the list')), 'Every “IS” move must be in the learnset; “NOT” moves must not be.')}
+  ${row('stat', 'Stats', 'species', `<div id="stats-rows">${fs.stats.map((r, i) => dupRow('stats', r, i, STAT_OPTS)).join('')}</div>`, 'Restrict Pokémon based on their presented stats — the in-game Level 50 numbers. “Base” options use base stats.')}
+  ${row('forme', 'Formes', 'species', band(cb('data-forme', 'base', 'Base formes', fs.formes.base) + cb('data-forme', 'mega', 'Mega formes', fs.formes.mega)), 'Include or exclude Mega formes, which are listed as their own entries.', true)}
+  ${row('reg', 'Regulation', null, band(sel('regStatus', [['legal', 'Legal'], ['new', 'Newly legal'], ['removed', 'Removed']], fs.regStatus, 'medium-select') + `<select class="form-input auto medium-select" disabled><option>${esc(IDX.meta.regulation.regulation)}</option></select>`), 'Only the current regulation is loaded in this prototype; “Newly legal” and “Removed” arrive with regulation history.', true)}
+  ${row('match', 'Matchups', 'species', band(typeSel('weak', fs.weak) + typeSel('resists', fs.resists) + typeSel('immune', fs.immune)), 'From the type chart only — abilities such as Levitate are not applied.')}
+  ${row('cat', 'Category', 'move', band(['physical', 'special', 'status'].map(c => cb('data-cat', c, cap(c), fs.cats.has(c))).join('')), 'Only return moves of the selected categories.', true)}
+  ${row('num', 'Move numbers', 'move', `<div id="mnums-rows">${fs.mnums.map((r, i) => dupRow('mnums', r, i, MNUM_OPTS)).join('')}</div>`, 'Base power, accuracy, PP (Champions values) and priority. Moves that never miss count as accuracy above 100.')}
+  ${row('flag', 'Flags', 'move', band(tokens('flags', FLAG_LIST, 'Enter a flag or choose from the list')), 'Contact, protect, sound, punch, bite, pulse, bullet, slicing, wind, powder… Click “IS” / “NOT” to include or exclude.')}
+  ${row('target', 'Target', 'move', band(sel('target', [['any', 'Any target'], ['spread', 'Spread (hits more than one)'], ['single', 'Single target']], fs.target) + sel('cls', [['', 'Any classification'], ...IDX.classes.map(c => [c, c])], fs.cls)), 'Target and Champions Classification.')}
+  ${row('lb', 'Learned by', 'move', band(`<input type="text" class="form-input" data-fs="lb" list="dl-species" value="${esc(fs.lb)}" placeholder="Enter a Pokémon, e.g. “Garchomp”">`), 'Only moves this Pokémon can learn.')}
+  ${row('crit', 'Criteria', null, band(tokens('crit', CRIT_LIST.map(c => c[0]), 'Enter a criterion or choose from the list', v => (CRIT_LIST.find(c => c[0] === v) || [v, v])[1])), 'Enter any criteria to match, in any order. Click “IS” / “NOT” to include or exclude an item.')}
+  ${row('item', 'Item category', 'item', band(IDX_ITEM_CATS.map(c => cb('data-icat', c, esc(c), fs.icats.has(c))).join('')) + band(sel('iclass', [['any', 'Any class'], ['consumable', 'Consumable'], ['held', 'Held']], fs.iclass)), 'Only return items of the selected categories.', true)}
+  ${row('pref', 'Preferences', null, band(sel('view', [['grid', 'Display as Grid'], ['list', 'Display as List']], fs.view) + sel('order', SORTS.map(([v, l]) => [v, 'Sort by ' + l]), fs.order) + sel('dir', [['', 'Default order'], ['asc', 'Ascending'], ['desc', 'Descending']], fs.dir)), '')}
+  <div class="form-row also" ${fs.also.length ? '' : 'hidden'}><label class="form-row-label short">${icon('crit')} Also</label><div class="form-row-content"><div class="band"><code id="also">${esc(fs.also.join(' '))}</code></div><p class="form-row-tip">Terms from the typed query this form has no control for. They stay in the search.</p></div></div>
+  <div class="form-row submit-row"><div class="form-row-label"></div><div class="form-row-content"><div class="band"><button type="submit" class="submit-n" id="go">Search with these options</button><button type="button" class="reset-n" id="reset">Reset</button><code id="qpreview" class="qpreview"></code></div></div></div>
   </form>
+  <datalist id="dl-types">${IDX.types.map(t => `<option value="${cap(t)}">`).join('')}</datalist>
   <datalist id="dl-abilities">${IDX.ents.filter(e => e.kind === 'ability').map(e => `<option value="${esc(e.name)}">`).join('')}</datalist>
   <datalist id="dl-moves">${IDX.ents.filter(e => e.kind === 'move').map(e => `<option value="${esc(e.name)}">`).join('')}</datalist>
   <datalist id="dl-species">${IDX.ents.filter(e => e.kind === 'species' && !e.is_mega).map(e => `<option value="${esc(e.name)}">`).join('')}</datalist>
+  <datalist id="dl-flags">${FLAG_LIST.map(f => `<option value="${f}">`).join('')}</datalist>
+  <datalist id="dl-crit">${CRIT_LIST.map(([v, l]) => `<option value="${l}">`).join('')}</datalist>
   </section>`;
 }
 function readForm() {
   const f = $('#adv'); if (!f) return; const fs = FS;
   fs.kinds = new Set([...f.querySelectorAll('[data-kind]')].filter(x => x.checked).map(x => x.dataset.kind));
-  for (const el of f.querySelectorAll('[data-fs]')) { if (el.type === 'radio') { if (el.checked) fs[el.dataset.fs] = el.value; } else fs[el.dataset.fs] = el.value; }
+  for (const el of f.querySelectorAll('[data-fs]')) fs[el.dataset.fs] = el.value;
+  fs.formes = { base: !!f.querySelector('[data-forme=base]')?.checked, mega: !!f.querySelector('[data-forme=mega]')?.checked };
   fs.cats = new Set([...f.querySelectorAll('[data-cat]')].filter(x => x.checked).map(x => x.dataset.cat));
   fs.icats = new Set([...f.querySelectorAll('[data-icat]')].filter(x => x.checked).map(x => x.dataset.icat));
-  for (const kind of ['moves', 'stats', 'mnums']) { const rows = [...f.querySelectorAll(`[data-row="${kind}"]`)]; fs[kind] = rows.map(r => kind === 'moves' ? r.querySelector('[data-f=val]').value : { stat: r.querySelector('[data-f=stat]').value, op: r.querySelector('[data-f=op]').value, val: r.querySelector('[data-f=val]').value }); }
-  for (const sec of f.querySelectorAll('.sec[data-kind]')) sec.hidden = !fs.kinds.has(sec.dataset.kind);
+  for (const kind of ['stats', 'mnums']) fs[kind] = [...f.querySelectorAll(`[data-row="${kind}"]`)].map(r => ({ stat: r.querySelector('[data-f=stat]').value, op: r.querySelector('[data-f=op]').value, val: r.querySelector('[data-f=val]').value }));
+  for (const sec of f.querySelectorAll('.form-row[data-sec]')) if (sec.dataset.sec) sec.hidden = !fs.kinds.has(sec.dataset.sec);
+  // duplicant: keep exactly one empty trailing row
+  for (const kind of ['stats', 'mnums']) { const rows = fs[kind]; const empties = rows.filter(r => r.val === '').length; if (empties === 0) { rows.push({ stat: kind === 'stats' ? 'spe' : 'bp', op: '>=', val: '' }); rerenderRows(kind, true); } }
   updatePreview();
 }
-function updatePreview() { const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || '(empty)'; const go = $('#go'); if (go) go.disabled = !q; const o = $('#qopen'); if (o) o.hidden = !q; }
+function updatePreview() { const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || ''; const go = $('#go'); if (go) go.disabled = !q; }
 function submitForm() { readForm(); const q = buildQuery(FS); if (!q) return; nav(qlink(q) + (FS.view === 'list' ? '&view=list' : '')); }
+function addToken(key, raw) {
+  const v = raw.trim(); if (!v) return false; let val = v;
+  if (key === 'types') { const t = norm(v); if (!IDX.types.includes(t)) return false; val = t; }
+  else if (key === 'flags') { const t = norm(v).replace(/ /g, ''); if (!FLAG_LIST.includes(t)) return false; val = t; }
+  else if (key === 'crit') { const c = CRIT_LIST.find(([k, l]) => norm(l) === norm(v) || k === norm(v)); if (!c) return false; val = c[0]; }
+  else if (key === 'abilities' || key === 'moves') { const kind = key === 'abilities' ? 'ability' : 'move'; const e = IDX.ents.find(x => x.kind === kind && (x.norm === norm(v) || x.compact === compact(v))); val = e ? e.name : v; }
+  if (FS[key].some(x => x.v === val)) return true;
+  FS[key].push({ v: val, neg: false }); return true;
+}
+function rerenderTokens(key) { const box = $(`[data-tk="${key}"]`); if (!box) return; const meta = { types: [IDX.types, 'Enter a type or choose from the list', cap], abilities: [null, 'Enter an ability or choose from the list'], moves: [null, 'Enter a move or choose from the list'], flags: [FLAG_LIST, 'Enter a flag or choose from the list'], crit: [CRIT_LIST.map(c => c[0]), 'Enter a criterion or choose from the list', v => (CRIT_LIST.find(c => c[0] === v) || [v, v])[1]] }[key]; box.outerHTML = tokens(key, meta[0], meta[1], meta[2]); updatePreview(); }
 function bindForm() {
   const f = $('#adv'); if (!f) return; updatePreview();
-  f.addEventListener('input', readForm); f.addEventListener('change', readForm);
+  f.addEventListener('input', ev => { if (ev.target.classList.contains('tok-in')) return; readForm(); });
+  f.addEventListener('change', ev => { const t = ev.target; if (t.classList.contains('tok-in')) { if (addToken(t.dataset.tkin, t.value)) { rerenderTokens(t.dataset.tkin); const nin = $(`[data-tkin="${t.dataset.tkin}"]`); if (nin) nin.focus(); } return; } readForm(); });
+  f.addEventListener('keydown', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in')) { if (ev.key === 'Enter') { ev.preventDefault(); if (addToken(t.dataset.tkin, t.value)) { rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } } else if (ev.key === 'Backspace' && !t.value && FS[t.dataset.tkin].length) { FS[t.dataset.tkin].pop(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } } });
   f.addEventListener('click', ev => {
-    const t = ev.target.closest('[data-tri]'); if (t) { const map = t.dataset.tri === 't' ? FS.types : FS.flags; const cur = map[t.dataset.v] || 0; const nx = cur === 0 ? 1 : cur === 1 ? -1 : 0; if (nx) map[t.dataset.v] = nx; else delete map[t.dataset.v]; t.className = t.className.replace(/\bs-?\d\b/, 's' + nx); t.setAttribute('aria-pressed', nx !== 0); updatePreview(); return; }
-    const add = ev.target.closest('[data-add]'); if (add) { readForm(); const k = add.dataset.add; FS[k].push(k === 'moves' ? '' : { stat: k === 'stats' ? 'spe' : 'bp', op: '>=', val: '' }); rerenderRows(k); return; }
-    const rm = ev.target.closest('[data-rm]'); if (rm) { readForm(); const k = rm.dataset.rm; FS[k].splice(Number(rm.dataset.i), 1); if (!FS[k].length) FS[k].push(k === 'moves' ? '' : { stat: k === 'stats' ? 'spe' : 'bp', op: '>=', val: '' }); rerenderRows(k); return; }
+    const pol = ev.target.closest('[data-pol]'); if (pol) { const x = FS[pol.dataset.pol][Number(pol.dataset.i)]; x.neg = !x.neg; rerenderTokens(pol.dataset.pol); return; }
+    const tx = ev.target.closest('[data-tx]'); if (tx) { FS[tx.dataset.tx].splice(Number(tx.dataset.i), 1); rerenderTokens(tx.dataset.tx); return; }
+    if (ev.target.classList.contains('tokens')) ev.target.querySelector('.tok-in')?.focus();
   });
   f.addEventListener('submit', ev => { ev.preventDefault(); submitForm(); });
   $('#reset').addEventListener('click', () => { FS = emptyForm(); history.replaceState('app', '', location.pathname); render(); });
-  $('#qopen').addEventListener('click', ev => { ev.preventDefault(); submitForm(); });
 }
-function rerenderRows(k) { const box = $('#' + k + '-rows'); box.innerHTML = k === 'moves' ? FS.moves.map(moveRow).join('') : FS[k].map((r, i) => numRow(k, r, i, k === 'stats' ? STAT_OPTS : MNUM_OPTS)).join(''); updatePreview(); }
+function rerenderRows(k, keepFocus) { const box = $('#' + k + '-rows'); if (!box) return; const active = document.activeElement; const idx = active && active.closest ? active.closest('[data-row]')?.dataset.i : null; const fld = active && active.dataset ? active.dataset.f : null; box.innerHTML = FS[k].map((r, i) => dupRow(k, r, i, k === 'stats' ? STAT_OPTS : MNUM_OPTS)).join(''); if (keepFocus && idx != null && fld) { const el = box.querySelector(`[data-row="${k}"][data-i="${idx}"] [data-f="${fld}"]`); if (el) { el.focus(); if (el.type === 'number' || el.type === 'text') { const L = el.value.length; try { el.setSelectionRange(L, L); } catch (e) {} } } } updatePreview(); }
 
 // ----- render + events -----
 function render() {
