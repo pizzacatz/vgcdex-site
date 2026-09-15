@@ -103,7 +103,7 @@ dl.eff{display:grid;grid-template-columns:80px 1fr;gap:6px 10px;margin:0;align-i
 .form-row-content{width:80%;max-width:100%;display:flex;flex-flow:column nowrap;align-items:flex-start}
 .band{max-width:100%;width:100%;display:flex;flex-flow:row wrap;align-items:center;gap:6px 8px;padding:5px 0}.band.cbs{gap:0}
 .band .form-input.small-select,.band .form-input.medium-select{max-width:none;margin-right:0}
-.subhead{font-size:12px;color:var(--muted);margin:4px 0 0;font-style:italic}.dup.msub{flex-wrap:wrap}.suberr[hidden]{display:none}.dup.msub>.form-input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;flex:1 1 100%;width:100%;min-width:0}.suberr{flex-basis:100%}.advonly{font-style:normal;font-weight:700;letter-spacing:.08em;font-size:11px;margin-left:6px}.msub .form-input::placeholder{font-family:ui-monospace,Menlo,monospace}.msub.bad .form-input{border-color:var(--err-line)}.suberr{display:block;width:100%;color:var(--err-text);font-size:12px;margin-top:2px}.matchline{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}.matchline .mc{font-size:.7rem;padding:2px 7px}table.list .matchline{margin:0;padding:0;border:0}
+.subhead{font-size:12px;color:var(--muted);margin:4px 0 0;font-style:italic}.dup.msub{flex-wrap:wrap}.suberr[hidden]{display:none}.dup.msub>.tok-wrap{flex:1 1 100%;width:100%;max-width:none}.dup.msub .form-input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;flex:1 1 100%;width:100%;min-width:0}.suberr{flex-basis:100%}.advonly{font-style:normal;font-weight:700;letter-spacing:.08em;font-size:11px;margin-left:6px}.msub .form-input::placeholder{font-family:ui-monospace,Menlo,monospace}.msub.bad .form-input{border-color:var(--err-line)}.suberr{display:block;width:100%;color:var(--err-text);font-size:12px;margin-top:2px}.matchline{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}.matchline .mc{font-size:.7rem;padding:2px 7px}table.list .matchline{margin:0;padding:0;border:0}
 .kind-sep{width:100%;padding:18px 0 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--line)}
 #stats-rows,#mnums-rows,#matchups-rows,#msubs-rows{width:560px;max-width:100%}.dup{display:flex;flex-flow:row nowrap;align-items:center;gap:8px;padding:4px 0;width:100%}.dup>select.form-input,.dup>.pillsel{flex:0 0 auto;width:auto;margin:0}.dup>input[type=number]{flex:1 1 60px;width:auto;min-width:60px}.pillsel>.pill-btn.form-input.auto{width:150px;min-width:150px;justify-content:flex-start}
 .form-row-tip{width:100%;margin:2px 0 0;font-size:12px;color:var(--muted);font-style:italic;max-width:620px;line-height:1.5}
@@ -132,7 +132,7 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 .tok-menu{position:absolute;left:0;right:0;top:100%;z-index:20;margin-top:2px;max-height:340px;overflow-y:auto;background:var(--card);border:1px solid var(--field-line);border-radius:2px;box-shadow:0 6px 18px rgb(0 0 0/.18);font-size:16px}
 .tok-menu-group{padding:8px 12px 4px;font-weight:700;color:var(--text)}
 .tok-menu-row{padding:8px 12px 8px 24px;cursor:pointer;color:var(--text)}.tok-menu-row .chip,.tok .chip{font-size:.78rem;padding:4px 10px}[data-menu=types] .tok-menu-row{padding:5px 12px 5px 20px}.tok-menu-row.hi,.tok-menu-row:hover{background:var(--accent-soft)}
-.tok-menu-empty{padding:8px 12px;color:var(--muted);font-style:italic}
+.tok-menu-row code{color:var(--accent);font-weight:600;margin-right:6px}.tok-menu-empty{padding:8px 12px;color:var(--muted);font-style:italic}
 .submit-bar{position:sticky;bottom:0;z-index:15;display:flex;align-items:center;gap:12px;margin:16px -20px 0;padding:10px 20px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line);box-shadow:0 -4px 14px rgb(0 0 0/.08)}
 .submit-n{font:inherit;font-size:15px;font-weight:600;height:38px;padding:0 14px;border-radius:2px;border:1px solid var(--accent);background:var(--card);color:var(--accent);cursor:pointer;margin-left:auto;white-space:nowrap}.submit-n:hover{background:var(--accent);color:var(--accent-contrast)}.submit-n:disabled{opacity:.45;cursor:default;background:var(--card);color:var(--accent)}
 .reset-n{font:inherit;font-size:15px;height:38px;padding:0 12px;border-radius:2px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
@@ -151,6 +151,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260915232608"></script>
+<script src="app.js?v=20260915233452"></script>
 </body>
 </html>

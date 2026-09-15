@@ -438,15 +438,31 @@ function singlePicker(key, fsField, value) { const m = TK_META()[key]; return `<
 // --- suggestion menu (Scryfall-style list directly under the field; one entry per row) ---
 let MENU = { key: null, rows: [], hi: -1 };
 function menuRows(key, typed) { const m = TK_META()[key]; const q = norm(typed), qc = compact(typed); const chosen = new Set((FS[key] || []).map(x => x.v)); return m.items.filter(([v, l]) => !chosen.has(v) && (!q || norm(l).includes(q) || compact(l).includes(qc))); }
-function openMenu(input) { const key = input.dataset.tkin; const menu = input.closest('.tok-wrap').querySelector('.tok-menu'); const rows = menuRows(key, input.value); MENU = { key, rows, hi: rows.length && input.value ? 0 : -1, input, menu };
+const SUB_FIELDS = [['t:', 'type'], ['cat:', 'physical / special / status'], ['bp>=', 'base power'], ['acc>=', 'accuracy'], ['pp>=', 'PP'], ['prio>=', 'priority'], ['flag:', 'contact, protect, sound…'], ['target:', 'spread / single'], ['class:', 'Champions classification'], ['o:', 'description text'], ['is:', 'spread / variable']];
+function subContext(input) { const caret = input.selectionStart ?? input.value.length; const before = input.value.slice(0, caret); const m = /([^\s()]*)$/.exec(before); const tok = m ? m[1] : ''; const start = caret - tok.length; const ci = tok.indexOf(':'); if (ci < 0) { if (/[<>=!]/.test(tok)) return null; return { start, end: caret, field: '', partial: tok }; } return { start, end: caret, field: tok.slice(0, ci).toLowerCase(), partial: tok.slice(ci + 1) }; }
+function subRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial); const f = x => { const pre = x.filter(([v]) => q && (norm(v).startsWith(q) || compact(v).startsWith(qc))); const rest = x.filter(([v, l]) => !pre.includes(x.find(y => y[0] === v)) && (!q || norm(l).includes(q))); return q ? pre.concat(rest) : x; };
+  if (!ctx.field) return { group: 'Fields', rows: f(SUB_FIELDS), pills: false };
+  const fld = F[ctx.field] ? F[ctx.field].name : ctx.field;
+  if (fld === 't') return { group: 'Types', rows: f(IDX.types.map(t => [t, cap(t)])), pills: true };
+  if (fld === 'cat') return { group: 'Category', rows: f([['physical', 'Physical'], ['special', 'Special'], ['status', 'Status']]) };
+  if (fld === 'flag') return { group: 'Flags', rows: f(FLAG_LIST.map(x => [x, x])) };
+  if (fld === 'target') return { group: 'Target', rows: f([['spread', 'Spread (hits more than one)'], ['single', 'Single target']]) };
+  if (fld === 'class') return { group: 'Classification', rows: f(IDX.classes.map(c => [quote(c), c])) };
+  if (fld === 'is') return { group: 'Criteria', rows: f([['spread', 'Spread move'], ['variable', 'Variable-power move']]) };
+  return null; }
+function openSubMenu(input) { const menu = input.closest('.tok-wrap').querySelector('.tok-menu'); const ctx = subContext(input); const sr = ctx && subRows(ctx); if (!sr || !sr.rows.length) { menu.hidden = true; MENU = { key: null, rows: [], hi: -1 }; return; }
+  MENU = { key: 'sub', rows: sr.rows, hi: ctx.partial ? 0 : -1, input, menu, ctx };
+  menu.innerHTML = `<div class="tok-menu-group">${esc(sr.group)}</div>` + sr.rows.map(([v, l], i) => `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${sr.pills ? pill(v) : `<code>${esc(v)}</code> <span class="muted">${esc(l)}</span>`}</div>`).join(''); menu.hidden = false; }
+function pickSub(input, v) { const ctx = MENU.ctx || subContext(input); const isField = !ctx.field; const insert = isField ? v : (ctx.field + ':' + v); const tail = input.value.slice(ctx.end); const needSpace = !isField && !/^\s/.test(tail) ; const nv = input.value.slice(0, ctx.start) + insert + (needSpace ? ' ' : '') + tail; input.value = nv; const pos = ctx.start + insert.length + (needSpace ? 1 : 0); input.focus(); try { input.setSelectionRange(pos, pos); } catch (e) {} readForm(); if (isField && /[:=]$/.test(insert)) openSubMenu(input); else closeMenu(); }
+function openMenu(input) { if (input.dataset.acsub) return openSubMenu(input); const key = input.dataset.tkin; const menu = input.closest('.tok-wrap').querySelector('.tok-menu'); const rows = menuRows(key, input.value); MENU = { key, rows, hi: rows.length && input.value ? 0 : -1, input, menu };
   if (!rows.length) { menu.innerHTML = `<div class="tok-menu-empty">No matches</div>`; menu.hidden = false; return; }
   menu.innerHTML = `<div class="tok-menu-group">${esc(TK_META()[key].group)}</div>` + rows.slice(0, 400).map(([v, l], i) => `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${key === 'types' ? pill(v) : esc(l)}</div>`).join('') + (rows.length > 400 ? `<div class="tok-menu-empty">…keep typing to narrow the list</div>` : ''); menu.hidden = false; }
 function closeMenu() { if (MENU.menu) MENU.menu.hidden = true; MENU = { key: null, rows: [], hi: -1 }; }
 function moveHi(d) { if (!MENU.menu || !MENU.rows.length) return; MENU.hi = Math.max(0, Math.min(MENU.rows.length - 1, MENU.hi + d)); [...MENU.menu.querySelectorAll('.tok-menu-row')].forEach((r, i) => { r.classList.toggle('hi', i === MENU.hi); if (i === MENU.hi) r.scrollIntoView({ block: 'nearest' }); }); }
-function pick(input, v) { const key = input.dataset.tkin; if (input.dataset.single) { input.value = v; closeMenu(); readForm(); return; } if (addToken(key, v)) { closeMenu(); rerenderTokens(key); const nin = $(`[data-tkin="${key}"]`); if (nin) nin.focus(); } }
+function pick(input, v) { if (input.dataset.acsub) return pickSub(input, v); const key = input.dataset.tkin; if (input.dataset.single) { input.value = v; closeMenu(); readForm(); return; } if (addToken(key, v)) { closeMenu(); rerenderTokens(key); const nin = $(`[data-tkin="${key}"]`); if (nin) nin.focus(); } }
 function dupRow(kind, r, i, opts) { return `<div class="band dup" data-row="${kind}" data-i="${i}"><select class="form-input auto small-select" data-f="stat">${opts.map(([v, l]) => `<option value="${v}" ${v === r.stat ? 'selected' : ''}>${l}</option>`).join('')}</select><select class="form-input auto small-select" data-f="op">${MODE_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.op ? 'selected' : ''}>${l}</option>`).join('')}</select><input type="number" inputmode="numeric" pattern="[0-9]*" class="form-input auto small-select" data-f="val" value="${esc(r.val)}" placeholder="Any value, e.g. “100”"></div>`; }
 function pillSelect(attrs, val) { return `<div class="pillsel" ${attrs}><button type="button" class="form-input auto pill-btn" data-pillbtn>${pill(val)}</button><div class="tok-menu pill-menu" hidden><div class="tok-menu-group">Types</div>${IDX.types.map(t => `<div class="tok-menu-row ${t === val ? 'hi' : ''}" data-pillpick="${t}">${pill(t)}</div>`).join('')}</div></div>`; }
-function msubRow(v, i) { return `<div class="band dup msub" data-row="msubs" data-i="${i}"><input type="text" class="form-input" data-f="val" value="${esc(v)}" placeholder="e.g. t:rock cat:physical bp>=75" autocapitalize="off" spellcheck="false"><small class="suberr" hidden></small></div>`; }
+function msubRow(v, i) { return `<div class="band dup msub" data-row="msubs" data-i="${i}"><div class="tok-wrap single"><input type="text" class="form-input tok-in" data-f="val" data-tkin="sub" data-acsub="1" value="${esc(v)}" placeholder="e.g. t:rock cat:physical bp>=75" autocapitalize="off" autocomplete="off" spellcheck="false"><div class="tok-menu" data-menu="sub" hidden></div></div></div>`; }
 function matchRow(r, i) { return `<div class="band dup" data-row="matchups" data-i="${i}"><select class="form-input auto small-select" data-f="rel">${MATCH_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.rel ? 'selected' : ''}>${l}</option>`).join('')}</select>${pillSelect(`data-f="type" data-val="${esc(r.type)}"`, r.type)}</div>`; }
 function advForm() {
   const fs = FS; const on = k => fs.kinds.has(k);
@@ -491,7 +507,7 @@ function readForm() {
   for (const kind of ['stats', 'mnums']) fs[kind] = [...f.querySelectorAll(`[data-row="${kind}"]`)].map(r => ({ stat: r.querySelector('[data-f=stat]').value, op: r.querySelector('[data-f=op]').value, val: r.querySelector('[data-f=val]').value }));
   fs.matchups = [...f.querySelectorAll('[data-row="matchups"]')].map(r => ({ rel: r.querySelector('[data-f=rel]').value, type: r.querySelector('[data-f=type]').dataset.val || '' }));
   fs.msubs = [...f.querySelectorAll('[data-row="msubs"]')].map(r => r.querySelector('[data-f=val]').value);
-  for (const r of f.querySelectorAll('[data-row="msubs"]')) { const v = r.querySelector('[data-f=val]').value.trim(); const err = r.querySelector('.suberr'); let msg = ''; if (v) { try { const a = parse('m:(' + v + ')'); validate(a, IDX, {}); } catch (e) { msg = e instanceof QueryError ? e.message.replace(/^Inside m:\( \): /, '') : 'Invalid'; } } err.textContent = msg; err.hidden = !msg; r.classList.toggle('bad', !!msg); }
+
   for (const sec of f.querySelectorAll('.form-row[data-sec]')) if (sec.dataset.sec) sec.hidden = !fs.kinds.has(sec.dataset.sec);
   for (const sp of f.querySelectorAll('.kind-sep')) sp.hidden = !(fs.kinds.has(sp.dataset.sec) && fs.kinds.size > 1);
   updatePreview();
@@ -500,8 +516,8 @@ function readForm() {
 function ensureDupRow(kind) { const fs = FS; if (kind === 'msubs') { if (!fs.msubs.some(v => !v.trim())) { fs.msubs.push(''); $('#msubs-rows').insertAdjacentHTML('beforeend', msubRow('', fs.msubs.length - 1)); } return; }
   if (kind === 'matchups') { if (!fs.matchups.some(r => !r.type)) { fs.matchups.push({ rel: 'weak', type: '' }); $('#matchups-rows').insertAdjacentHTML('beforeend', matchRow(fs.matchups[fs.matchups.length - 1], fs.matchups.length - 1)); } return; }
   const rows = fs[kind]; if (rows.some(r => r.val === '')) return; const r = { stat: kind === 'stats' ? 'spe' : 'bp', op: '>=', val: '' }; rows.push(r); $('#' + kind + '-rows').insertAdjacentHTML('beforeend', dupRow(kind, r, rows.length - 1, kind === 'stats' ? STAT_OPTS : MNUM_OPTS)); }
-function updatePreview() { if (!FS) return; const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || ''; const go = $('#go'); if (go) go.disabled = !q || !!($('#adv') && $('#adv').querySelector('.msub.bad')); }
-function submitForm() { readForm(); if ($('#adv') && $('#adv').querySelector('.msub.bad')) { $('#adv').querySelector('.msub.bad input').focus(); return; } const q = buildQuery(FS); if (!q) return; nav(qlink(q) + (FS.view === 'list' ? '&view=list' : '')); }
+function updatePreview() { if (!FS) return; const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || ''; const go = $('#go'); if (go) go.disabled = !q; }
+function submitForm() { readForm(); const q = buildQuery(FS); if (!q) return; nav(qlink(q) + (FS.view === 'list' ? '&view=list' : '')); }
 function addToken(key, raw) {
   const v = raw.trim(); if (!v) return false; let val = v;
   if (key === 'types') { const t = norm(v); if (!IDX.types.includes(t)) return false; val = t; }
@@ -516,7 +532,7 @@ function addToken(key, raw) {
 function rerenderTokens(key) { const box = $(`[data-tk="${key}"]`); if (!box) return; box.closest('.tok-wrap').outerHTML = tokens(key); updatePreview(); }
 function bindForm() {
   const f = $('#adv'); if (!f) return; updatePreview();
-  f.addEventListener('input', ev => { const t = ev.target; if (t.classList.contains('tok-in')) { openMenu(t); if (t.dataset.single) readForm(); return; } readForm(); const row = t.closest('[data-row]'); if (row && t.dataset.f === 'val' && t.value !== '') ensureDupRow(row.dataset.row); });
+  f.addEventListener('input', ev => { const t = ev.target; if (t.classList.contains('tok-in')) { openMenu(t); if (t.dataset.single || t.dataset.acsub) { readForm(); if (t.dataset.acsub && t.value !== '') ensureDupRow('msubs'); } return; } readForm(); const row = t.closest('[data-row]'); if (row && t.dataset.f === 'val' && t.value !== '') ensureDupRow(row.dataset.row); });
   f.addEventListener('focusin', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in')) openMenu(t); });
   f.addEventListener('focusout', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in')) setTimeout(() => { if (!document.activeElement || !document.activeElement.closest || !document.activeElement.closest('.tok-wrap')) closeMenu(); }, 120); });
   f.addEventListener('change', ev => { if (ev.target.classList.contains('tok-in')) return; readForm(); const row = ev.target.closest('[data-row]'); if (row && (ev.target.dataset.f === 'val' || ev.target.dataset.f === 'cat')) ensureDupRow(row.dataset.row); });
@@ -525,7 +541,7 @@ function bindForm() {
     if (ev.key === 'ArrowDown') { ev.preventDefault(); if (MENU.menu && !MENU.menu.hidden) moveHi(1); else openMenu(t); return; }
     if (ev.key === 'ArrowUp') { ev.preventDefault(); moveHi(-1); return; }
     if (ev.key === 'Escape') { closeMenu(); return; }
-    if (ev.key === 'Enter') { ev.preventDefault(); if (MENU.rows.length && MENU.hi >= 0) pick(t, MENU.rows[MENU.hi][0]); else if (t.dataset.single) { closeMenu(); readForm(); } else if (addToken(t.dataset.tkin, t.value)) { closeMenu(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } return; }
+    if (ev.key === 'Enter') { if (t.dataset.acsub && !(MENU.rows.length && MENU.hi >= 0)) { closeMenu(); return; } ev.preventDefault(); if (MENU.rows.length && MENU.hi >= 0) pick(t, MENU.rows[MENU.hi][0]); else if (t.dataset.single) { closeMenu(); readForm(); } else if (addToken(t.dataset.tkin, t.value)) { closeMenu(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } return; }
     if (ev.key === 'Backspace' && !t.value && !t.dataset.single && FS[t.dataset.tkin].length) { FS[t.dataset.tkin].pop(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } });
   f.addEventListener('pointerdown', ev => { const pp = ev.target.closest('[data-pillpick]'); if (pp) { ev.preventDefault(); const ps = pp.closest('.pillsel'); ps.dataset.val = pp.dataset.pillpick; ps.querySelector('.pill-btn').innerHTML = pill(pp.dataset.pillpick); ps.querySelector('.pill-menu').hidden = true; readForm(); ensureDupRow(ps.closest('[data-row]').dataset.row); return; }
     const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); const input = r.closest('.tok-wrap').querySelector('.tok-in'); pick(input, r.dataset.pick); } });
