@@ -492,7 +492,7 @@ function addToken(key, raw) {
 function rerenderTokens(key) { const box = $(`[data-tk="${key}"]`); if (!box) return; box.closest('.tok-wrap').outerHTML = tokens(key); updatePreview(); }
 function bindForm() {
   const f = $('#adv'); if (!f) return; updatePreview();
-  f.addEventListener('input', ev => { const t = ev.target; if (t.classList.contains('tok-in')) { openMenu(t); if (t.dataset.single) readForm(); return; } readForm(); });
+  f.addEventListener('input', ev => { const t = ev.target; if (t.classList.contains('tok-in')) { openMenu(t); if (t.dataset.single) readForm(); return; } readForm(); const row = t.closest('[data-row]'); if (row && t.dataset.f === 'val' && t.value !== '') ensureDupRow(row.dataset.row); });
   f.addEventListener('focusin', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in')) openMenu(t); });
   f.addEventListener('focusout', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in')) setTimeout(() => { if (!document.activeElement || !document.activeElement.closest || !document.activeElement.closest('.tok-wrap')) closeMenu(); }, 120); });
   f.addEventListener('change', ev => { if (ev.target.classList.contains('tok-in')) return; readForm(); const row = ev.target.closest('[data-row]'); if (row && ev.target.dataset.f === 'val') ensureDupRow(row.dataset.row); });
