@@ -453,7 +453,7 @@ function advForm() {
   ${row('item', 'Item category', 'item', band(IDX_ITEM_CATS.map(c => cb('data-icat', c, esc(c), fs.icats.has(c))).join('')) + band(sel('iclass', [['any', 'Any class'], ['consumable', 'Consumable'], ['held', 'Held']], fs.iclass)), 'Only return items of the selected categories.', true)}
   ${row('pref', 'Preferences', null, band(sel('view', [['grid', 'Display as Grid'], ['list', 'Display as List']], fs.view) + sel('order', SORTS.map(([v, l]) => [v, 'Sort by ' + l]), fs.order) + sel('dir', [['', 'Default order'], ['asc', 'Ascending'], ['desc', 'Descending']], fs.dir)), '')}
   <div class="form-row also" ${fs.also.length ? '' : 'hidden'}><label class="form-row-label short">${icon('crit')} Also</label><div class="form-row-content"><div class="band"><code id="also">${esc(fs.also.join(' '))}</code></div><p class="form-row-tip">Terms from the typed query this form has no control for. They stay in the search.</p></div></div>
-  <div class="form-row submit-row"><div class="form-row-label"></div><div class="form-row-content"><div class="band"><button type="submit" class="submit-n" id="go">Search with these options</button><button type="button" class="reset-n" id="reset">Reset</button><code id="qpreview" class="qpreview"></code></div></div></div>
+  <div class="submit-bar"><code id="qpreview" class="qpreview" title="The query this form will run"></code><button type="button" class="reset-n" id="reset">Reset</button><button type="submit" class="submit-n" id="go">Search with these options</button></div>
   </form>
   </section>`;
 }
