@@ -264,10 +264,10 @@ function header(st) {
     <nav class="topnav"><a href="?guide=1" data-nav>Syntax</a><a href="#" id="random">Random</a><span class="reg">${esc(IDX.meta.regulation.regulation)}</span><button id="theme" title="Toggle theme" aria-label="Toggle theme">◐</button></nav>
   </div></header>`;
 }
-function footer() { const m = IDX.meta; return `<footer class="foot"><div class="wrap">
-  <div class="foot-grid"><div><b>VGC Dex</b><br>A typed, shareable search engine for Pokémon Champions.<br><span class="proto">prototype</span></div>
-  <div><b>Data</b><br>champions-logic ${esc(m.data_version)}<br>revision <code>${esc(m.data_revision)}</code><br>Regulation ${esc(m.regulation.regulation)} · ${esc(m.regulation.active_from)} → ${esc(m.regulation.active_to)}</div>
-  <div><b>Credits</b><br>Dex data via Pokémon Showdown (MIT) and Serebii · sprites via Bulbagarden Archives and Serebii.<br>Pokémon and all related names are © Nintendo / Creatures Inc. / GAME FREAK. Fan project, not affiliated.</div></div>
+function footer() { const m = IDX.meta; return `<footer class="foot"><div class="wrap foot-col">
+  <div class="foot-brand"><b>VGC Dex</b><br>A regex search engine for Pokémon Champions.<br>Regulation ${esc(m.regulation.regulation)} · ${esc(m.regulation.active_from)} → ${esc(m.regulation.active_to)}</div>
+  <p class="foot-legal">VGC Dex is fan content. The literal and graphical information presented on this site about Pokémon, including images and symbols, is copyright Nintendo, Creatures Inc., GAME FREAK, The Pokémon Company, and The Pokémon Company International (TPCi). VGC Dex is not produced by, endorsed by, or affiliated with any of these companies.</p>
+  <p class="foot-legal">Sprites via Bulbagarden Archives and Serebii. Dex data via Pokémon Showdown.</p>
 </div></footer>`; }
 
 // ----- home -----
