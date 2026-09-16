@@ -230,6 +230,8 @@ function subMatches(subs, e, idx) { const out = []; for (const n of subs) { if (
 
 // ---------- UI (Scryfall-style layout on GeorgiaPlayEvents tokens) ----------
 const $ = s => document.querySelector(s);
+const scroller = () => document.documentElement.classList.contains('ffa') ? document.getElementById('app') : null;
+function scrollTop0() { const sc = scroller(); if (sc) sc.scrollTo(0, 0); else scrollTop0(); }
 const app = $('#app');
 const STAT_LABEL = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
 const KIND_LABEL = { species: 'Pokémon', move: 'Moves', ability: 'Abilities', item: 'Items' };
@@ -240,7 +242,7 @@ const qlink = q => `?q=${encodeURIComponent(q)}`;
 const plink = e => `?${e.kind}=${encodeURIComponent(e.slug)}`;
 const nameTerm = e => `name=${JSON.stringify(e.name)}`;
 function state() { const p = new URLSearchParams(location.search); const o = { q: p.get('q') || '', view: p.get('view') || 'grid', guide: p.has('guide'), adv: p.has('adv') }; for (const k of KINDS) if (p.get(k)) o.detail = { kind: k, slug: p.get(k) }; return o; }
-function nav(qs, replace) { history[replace ? 'replaceState' : 'pushState'](null, '', qs || location.pathname); render(); window.scrollTo(0, 0); }
+function nav(qs, replace) { history[replace ? 'replaceState' : 'pushState'](null, '', qs || location.pathname); render(); scrollTop0(); }
 function setParam(k, v) { const p = new URLSearchParams(location.search); if (v == null || v === '') p.delete(k); else p.set(k, v); return '?' + p.toString(); }
 
 // ----- shell -----
@@ -506,7 +508,7 @@ function openSubMenu(input) { MENU_INPUT_KEY = input.dataset.tkin; const menu = 
   menu.innerHTML = `<div class="tok-menu-group">${esc(sr.group)}</div>` + sr.rows.map(([v, l], i) => `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${sr.pills ? pill(v) : sr.plain ? esc(l) : `<code>${esc(v)}</code> <span class="muted">${esc(l)}</span>`}</div>`).join(''); menu.hidden = false; }
 function pickSub(input, v) { const ctx = MENU.ctx || subContext(input); const isField = !ctx.field; const insert = isField ? v : (ctx.field + ':' + v); const tail = input.value.slice(ctx.end); const needSpace = !isField && !/^\s/.test(tail) ; const nv = input.value.slice(0, ctx.start) + insert + (needSpace ? ' ' : '') + tail; input.value = nv; const pos = ctx.start + insert.length + (needSpace ? 1 : 0); const wasMain = MENU.key === 'main'; input.focus(); try { input.setSelectionRange(pos, pos); } catch (e) {} readForm(); if (isField && /[:=]$/.test(insert)) (wasMain ? openMainMenu : openSubMenu)(input); else closeMenu(); }
 const looksExpr = v => /[:<>=\/()]/.test(v);
-function nudgeIntoView(input) { if (window.innerWidth > 700) return; setTimeout(() => { const r = input.getBoundingClientRect(); if (r.top > 140 || r.top < 0) window.scrollBy({ top: r.top - 90, behavior: 'smooth' }); }, 250); }
+function nudgeIntoView(input) { if (window.innerWidth > 700) return; setTimeout(() => { const r = input.getBoundingClientRect(); if (r.top > 140 || r.top < 0) (scroller() || window).scrollBy({ top: r.top - 90, behavior: 'smooth' }); }, 250); }
 function openMenu(input) { nudgeIntoView(input); if (input.dataset.acsub || ((input.dataset.tkin === 'moves' || input.dataset.tkin === 'abilities') && looksExpr(input.value))) return openSubMenu(input); const key = input.dataset.tkin; const menu = input.closest('.tok-wrap').querySelector('.tok-menu'); const rows = menuRows(key, input.value); MENU = { key, rows, hi: rows.length && input.value ? 0 : -1, input, menu };
   if (!rows.length) { menu.innerHTML = `<div class="tok-menu-empty">No matches</div>`; menu.hidden = false; return; }
   const grouped = TK_META()[key].grouped; let lastG = null;
@@ -625,7 +627,7 @@ function render() {
   const back = $('#back'); if (back) back.addEventListener('click', ev => { ev.preventDefault(); if (history.length > 1 && document.referrer !== '' || history.state === 'app') history.back(); else nav(''); });
   const th = $('#theme'); if (th) th.addEventListener('click', () => { const cur = document.documentElement.dataset.theme || 'light'; const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('vgcdex-theme', nx); } catch (e) {} });
 }
-document.addEventListener('click', ev => { const a = ev.target.closest('a[data-nav]'); if (!a) return; const href = a.getAttribute('href'); if (!href || href.startsWith('#')) return; ev.preventDefault(); history.pushState('app', '', href === './' ? location.pathname : href); render(); if (!href.includes('#')) window.scrollTo(0, 0); });
+document.addEventListener('click', ev => { const a = ev.target.closest('a[data-nav]'); if (!a) return; const href = a.getAttribute('href'); if (!href || href.startsWith('#')) return; ev.preventDefault(); history.pushState('app', '', href === './' ? location.pathname : href); render(); if (!href.includes('#')) scrollTop0(); });
 window.addEventListener('popstate', render);
 window.VGCDEX = { search: q => search(IDX, q), parse, get idx() { return IDX; } };
 fetch('data/m-c.json').then(r => r.json()).then(d => { IDX = buildIndex(d); IDX_ITEM_CATS = d.item_categories.slice(); render(); })
