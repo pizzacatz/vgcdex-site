@@ -553,7 +553,7 @@ function advForm() {
   if (T === 'species') body = typesRow
     + row('ability', 'Abilities', band(tokens('abilities')), 'Any slot, hidden abilities included; “NOT” excludes. A regex such as <code>/weather/</code> matches ability text; <code>o:immune</code> works too. See <a href="?guide=1#subquery" data-nav>the syntax guide</a>.')
     + row('stat', 'Stats', `<div id="stats-rows">${fs.stats.map((r, i) => dupRow('stats', r, i, STAT_OPTS)).join('')}</div>`, 'Restrict Pokémon based on their in-game stats. Total is the sum of the six.')
-    + row('match', 'Matchups', `<div id="matchups-rows">${fs.matchups.map(matchRow).join('')}</div>`, 'Defensive matchups from the type chart only; abilities such as Levitate are not applied. Choosing a type adds another row.')
+    + row('match', 'Matchups', `<div id="matchups-rows">${fs.matchups.map(matchRow).join('')}</div>`, 'Defensive matchups from the type chart only. Choosing a type adds another row.')
     + row('forme', 'Formes', band(cb('data-forme', 'base', 'Base formes', fs.formes.base) + cb('data-forme', 'mega', 'Mega formes', fs.formes.mega), 'cbs'), 'Include or exclude Mega formes, which are listed as their own entries.', true)
     + row('move', 'Learns', band(tokens('moves')), 'Named moves must all be in the learnset; “NOT” moves must not be. An expression such as <code>t:rock cat:physical bp>=75</code> describes one move to learn. See <a href="?guide=1#subquery" data-nav>the syntax guide</a>.');
   else if (T === 'move') body = typesRow
