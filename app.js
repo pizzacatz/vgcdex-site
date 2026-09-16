@@ -476,7 +476,7 @@ function subRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial); 
   return null; }
 let MENU_INPUT_KEY = null;
 function mainRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial); const f = x => { const pre = x.filter(([v]) => q && (norm(v).startsWith(q) || compact(v).startsWith(qc))); const rest = x.filter(([v, l]) => !pre.includes(x.find(y => y[0] === v)) && (!q || norm(l).includes(q))); return q ? pre.concat(rest) : x; };
-  if (!ctx.field) { const rows = []; let names = []; if (ctx.partial.length >= 2) names = IDX.ents.filter(e => e.norm.startsWith(q) || e.compact.startsWith(qc)).slice(0, 8).map(e => [quote(e.name), e.name + ' · ' + KIND_LABEL[e.kind]]); const fields = f(MAIN_FIELDS).slice(0, 10); return { group: names.length ? 'Names' : 'Fields', rows: names.concat(fields.map(([v, l]) => [v, l])), groups: names.length && fields.length ? names.length : 0, pills: false }; }
+  if (!ctx.field) { const rows = []; let names = []; if (ctx.partial.length >= 2) names = IDX.ents.filter(e => e.norm.startsWith(q) || e.compact.startsWith(qc)).slice(0, 8).map(e => [quote(e.name), KIND_LABEL[e.kind]]); const fields = f(MAIN_FIELDS).slice(0, 10); return { group: names.length ? 'Names' : 'Fields', rows: names.concat(fields.map(([v, l]) => [v, l])), groups: names.length && fields.length ? names.length : 0, pills: false }; }
   const fld = F[ctx.field] ? F[ctx.field].name : ctx.field; const types = f(IDX.types.map(t => [t, cap(t)]));
   if (['t', 'weak', 'xweak', 'resists', 'xresists', 'immune'].includes(fld)) return { group: 'Types', rows: types, pills: true };
   if (fld === 'a') return { group: 'Abilities', rows: f(IDX.ents.filter(e => e.kind === 'ability').map(e => [quote(e.name), e.name])).slice(0, 12) };
