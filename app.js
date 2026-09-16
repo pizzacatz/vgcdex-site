@@ -381,11 +381,11 @@ const ICONS = { name: 'M3 5h18v14H3z M7 9h6 M7 13h10', text: 'M4 5h16 M4 9h16 M4
 const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[k]}"/></svg>`;
 const naturalDir = key => !key ? '' : ['hp', 'atk', 'def', 'spa', 'spd', 'spe', 'total', 'bp', 'acc', 'pp', 'prio'].includes(key) ? 'desc' : 'asc';
 const TABS = [['species', 'Pokémon'], ['move', 'Moves'], ['ability', 'Abilities'], ['item', 'Items']];
-function emptyForm() { return { tab: 'species', name: '', text: '', types: [], typeMode: 'all', abilities: [], moves: [], stats: [{ stat: 'spe', op: '>=', val: '' }], formes: { base: true, mega: true }, regs: [{ rel: 'r', reg: '' }], matchups: [{ rel: 'weak', type: '' }], cats: new Set(), mnums: [{ stat: 'bp', op: '>=', val: '' }], props: [], target: 'any', lb: '', icats: [], view: 'grid', order: '', dir: '', also: [] }; }
+function emptyForm() { return { tab: 'species', name: '', text: '', types: [], typeMode: 'all', abilities: [], moves: [], stats: [{ stat: 'spe', op: '>=', val: '' }], formes: { base: true, mega: true }, regs: [{ rel: 'r', reg: '', neg: false }], matchups: [{ rel: 'weak', type: '' }], cats: new Set(), mnums: [{ stat: 'bp', op: '>=', val: '' }], props: [], target: 'any', lb: '', icats: [], view: 'grid', order: '', dir: '', also: [] }; }
 function buildQuery(fs) {
   const t = []; const tok = (arr, field, q) => arr.forEach(x => t.push((x.neg ? '-' : '') + field + ':' + (q ? quote(x.v) : x.v)));
   const tab = fs.tab; t.push('kind:' + tab);
-  { const rows = fs.regs.filter(x => x.reg); const intro = rows.filter(x => x.rel === 'new'); const rest = rows.filter(x => x.rel !== 'new'); if (intro.length === 1) t.push('new:' + intro[0].reg.toLowerCase()); else if (intro.length > 1) t.push('(' + intro.map(x => 'new:' + x.reg.toLowerCase()).join(' or ') + ')'); rest.forEach(x => { if (x.rel === 'r' && x.reg === IDX.currentReg) return; const neg = x.rel.startsWith('-'); t.push((neg ? '-' : '') + x.rel.replace('-', '') + ':' + x.reg.toLowerCase()); }); }
+  { const rows = fs.regs.filter(x => x.reg); const intro = rows.filter(x => x.rel === 'new' && !x.neg); const rest = rows.filter(x => !(x.rel === 'new' && !x.neg)); if (intro.length === 1) t.push('new:' + intro[0].reg.toLowerCase()); else if (intro.length > 1) t.push('(' + intro.map(x => 'new:' + x.reg.toLowerCase()).join(' or ') + ')'); rest.forEach(x => { if (x.rel === 'r' && x.reg === IDX.currentReg && !x.neg) return; t.push((x.neg ? '-' : '') + x.rel + ':' + x.reg.toLowerCase()); }); }
   if (fs.name.trim()) t.push(quote(fs.name.trim()));
   const txt = fs.text.trim(); if (txt && tab !== 'species') t.push(/^\/.*\/$/.test(txt) ? 'o:' + txt : 'o:' + quote(txt));
   if (tab === 'species' || tab === 'move') {
@@ -431,7 +431,7 @@ function queryToForm(q) {
       const fields = new Set(it.items.map(x => F[x.field] && F[x.field].name)); const vals = it.items.map(x => x.val);
       if (fields.size === 1 && fields.has('t') && vals.every(v => IDX.types.includes(norm(v))) && (T === 'species' || T === 'move')) { vals.forEach(v => fs.types.push({ v: norm(v), neg: false })); fs.typeMode = 'any'; continue; }
       if (fields.size === 1 && fields.has('cat') && vals.every(isCatVal) && T === 'move') { vals.forEach(v => fs.cats.add(norm(v))); continue; }
-      if (fields.size === 1 && fields.has('new') && vals.every(v => IDX.regs.some(r => norm(r).replace(/ /g, '') === norm(v).replace(/ /g, '')))) { vals.forEach(v => fs.regs.push({ rel: 'new', reg: IDX.regs.find(r => norm(r).replace(/ /g, '') === norm(v).replace(/ /g, '')) })); continue; }
+      if (fields.size === 1 && fields.has('new') && vals.every(v => IDX.regs.some(r => norm(r).replace(/ /g, '') === norm(v).replace(/ /g, '')))) { vals.forEach(v => fs.regs.push({ rel: 'new', reg: IDX.regs.find(r => norm(r).replace(/ /g, '') === norm(v).replace(/ /g, '')), neg: false })); continue; }
       fs.also.push(astText(it)); continue; }
     const neg = it.type === 'not'; const tm = neg ? it.node : it;
     if (tm.type !== 'term' || !F[tm.field]) { fs.also.push(astText(it)); continue; }
@@ -439,7 +439,7 @@ function queryToForm(q) {
     if (tm.sub) { if (f === 'm' && T === 'species') { fs.moves.push({ v: astText(tm.sub), neg, expr: true }); continue; } if (f === 'a' && T === 'species') { const sub = tm.sub; const bare = sub.type === 'term' && F[sub.field] && F[sub.field].name === 'o' && sub.isRegex; fs.abilities.push({ v: bare ? '/' + sub.val + '/' : astText(sub), neg, expr: true }); continue; } fs.also.push(astText(it)); continue; }
     if (tm.isRegex && f !== 'o') { fs.also.push(astText(it)); continue; }
     if (f === 'kind') { fs.also.push(astText(it)); continue; }
-    if (['r', 'new', 'banned', 'restricted', 'removed'].includes(f) && tm.op === ':') { const rv = IDX.regs.find(r => norm(r).replace(/ /g, '') === vn.replace(/ /g, '')); if (rv && (!neg || f === 'r' || f === 'new')) { fs.regs.push({ rel: (neg ? '-' : '') + f, reg: rv }); continue; } }
+    if (['r', 'new', 'banned', 'restricted', 'removed'].includes(f) && tm.op === ':') { const rv = IDX.regs.find(r => norm(r).replace(/ /g, '') === vn.replace(/ /g, '')); if (rv) { fs.regs.push({ rel: f, reg: rv, neg }); continue; } }
     if (f === 't' && tm.op === ':' && IDX.types.includes(vn) && (T === 'species' || T === 'move')) { fs.types.push({ v: vn, neg }); if (!neg && fs.typeMode === 'any') fs.typeMode = 'all'; }
     else if (f === 't' && tm.op === '=' && !neg && T === 'species' && v.split(/[\/,+]/).every(x => IDX.types.includes(norm(x)))) { v.split(/[\/,+]/).forEach(x => fs.types.push({ v: norm(x), neg: false })); fs.typeMode = 'exact'; }
     else if (f === 'a' && tm.op === ':' && T === 'species') fs.abilities.push({ v: byName('ability', v), neg, expr: false });
@@ -464,7 +464,7 @@ function queryToForm(q) {
     else if (f === 'dir' && tm.op === ':') fs.dir = vn;
     else fs.also.push(astText(it));
   }
-  fs.stats.push({ stat: 'spe', op: '>=', val: '' }); fs.mnums.push({ stat: 'bp', op: '>=', val: '' }); fs.matchups.push({ rel: 'weak', type: '' }); fs.regs.push({ rel: 'r', reg: '' });
+  fs.stats.push({ stat: 'spe', op: '>=', val: '' }); fs.mnums.push({ stat: 'bp', op: '>=', val: '' }); fs.matchups.push({ rel: 'weak', type: '' }); fs.regs.push({ rel: 'r', reg: '', neg: false });
   return fs;
 }
 let FS = null;
@@ -536,8 +536,8 @@ function moveHi(d) { if (!MENU.menu || !MENU.rows.length) return; MENU.hi = Math
 function pick(input, v) { if (input.dataset.acsub || MENU.key === 'sub' || MENU.key === 'main') return pickSub(input, v); const key = input.dataset.tkin; if (input.dataset.single) { input.value = v; closeMenu(); readForm(); return; } if (addToken(key, v)) { closeMenu(); rerenderTokens(key); const nin = $(`[data-tkin="${key}"]`); if (nin) nin.focus(); } }
 function dupRow(kind, r, i, opts) { return `<div class="band dup" data-row="${kind}" data-i="${i}"><select class="form-input auto small-select" data-f="stat">${opts.map(([v, l]) => `<option value="${v}" ${v === r.stat ? 'selected' : ''}>${l}</option>`).join('')}</select><select class="form-input auto small-select" data-f="op">${MODE_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.op ? 'selected' : ''}>${l}</option>`).join('')}</select><input type="number" inputmode="numeric" pattern="[0-9]*" class="form-input auto small-select" data-f="val" value="${esc(r.val)}" placeholder="e.g. 100"></div>`; }
 function pillSelect(attrs, val) { return `<div class="pillsel" ${attrs}><button type="button" class="form-input auto pill-btn" data-pillbtn>${pill(val)}</button><div class="tok-menu pill-menu" hidden><div class="tok-menu-group">Types</div>${IDX.types.map(t => `<div class="tok-menu-row ${t === val ? 'hi' : ''}" data-pillpick="${t}">${pill(t)}</div>`).join('')}</div></div>`; }
-const REG_REL_OPTS = [['r', 'Legal in'], ['-r', 'Not legal in'], ['new', 'Introduced in'], ['-new', 'Not introduced in'], ['banned', 'Banned in'], ['restricted', 'Restricted in'], ['removed', 'Removed in']];
-function regRow(r, i) { const regs = IDX.regs.slice().reverse().filter(x => !(r.rel === 'removed' && IDX.regRank[x] === 0)); return `<div class="band dup" data-row="regs" data-i="${i}"><select class="form-input auto small-select" data-f="rel">${REG_REL_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.rel ? 'selected' : ''}>${l}</option>`).join('')}</select><select class="form-input auto small-select" data-f="reg"><option value="">Regulation…</option>${regs.map(x => `<option value="${x}" ${x === r.reg ? 'selected' : ''}>${x}${x === IDX.currentReg ? ' (current)' : ''}</option>`).join('')}</select></div>`; }
+const REG_REL_OPTS = [['r', 'Legal in'], ['new', 'Introduced in'], ['banned', 'Banned in'], ['restricted', 'Restricted in'], ['removed', 'Removed in']];
+function regRow(r, i) { const regs = IDX.regs.slice().reverse().filter(x => !(r.rel === 'removed' && IDX.regRank[x] === 0)); return `<div class="band dup regrow" data-row="regs" data-i="${i}"><button type="button" class="pol ${r.neg ? 'not' : 'is'}" data-rowpol="regs" data-i="${i}" title="Toggle include / exclude">${r.neg ? 'NOT' : 'IS'}</button><select class="form-input auto small-select" data-f="rel">${REG_REL_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.rel ? 'selected' : ''}>${l}</option>`).join('')}</select><select class="form-input auto small-select" data-f="reg"><option value="">Regulation…</option>${regs.map(x => `<option value="${x}" ${x === r.reg ? 'selected' : ''}>${x}${x === IDX.currentReg ? ' (current)' : ''}</option>`).join('')}</select></div>`; }
 function matchRow(r, i) { return `<div class="band dup" data-row="matchups" data-i="${i}"><select class="form-input auto small-select" data-f="rel">${MATCH_OPTS.map(([v, l]) => `<option value="${v}" ${v === r.rel ? 'selected' : ''}>${l}</option>`).join('')}</select>${pillSelect(`data-f="type" data-val="${esc(r.type)}"`, r.type)}</div>`; }
 function advForm() {
   const fs = FS; const T = fs.tab;
@@ -575,13 +575,13 @@ function readForm() {
   const prevOrder = fs.order;
   for (const el of f.querySelectorAll('[data-fs]')) { if (el.type === 'radio') { if (el.checked) fs[el.dataset.fs] = el.value; } else fs[el.dataset.fs] = el.value; }
   if (fs.order !== prevOrder) { fs.dir = ''; const d = f.querySelector('[data-fs=dir]'); if (d) { d.disabled = !fs.order; d.value = naturalDir(fs.order) || 'asc'; } }
-  fs.regs = [...f.querySelectorAll('[data-row="regs"]')].map(r => ({ rel: r.querySelector('[data-f=rel]').value, reg: r.querySelector('[data-f=reg]').value }));
+  fs.regs = [...f.querySelectorAll('[data-row="regs"]')].map(r => ({ rel: r.querySelector('[data-f=rel]').value, reg: r.querySelector('[data-f=reg]').value, neg: r.querySelector('[data-rowpol]').classList.contains('not') }));
   if (fs.tab === 'species') { fs.formes = { base: !!f.querySelector('[data-forme=base]')?.checked, mega: !!f.querySelector('[data-forme=mega]')?.checked }; if (!fs.formes.base && !fs.formes.mega) { fs.formes = { base: true, mega: true }; f.querySelectorAll('[data-forme]').forEach(x => x.checked = true); } fs.stats = [...f.querySelectorAll('[data-row="stats"]')].map(r => ({ stat: r.querySelector('[data-f=stat]').value, op: r.querySelector('[data-f=op]').value, val: r.querySelector('[data-f=val]').value })); fs.matchups = [...f.querySelectorAll('[data-row="matchups"]')].map(r => ({ rel: r.querySelector('[data-f=rel]').value, type: r.querySelector('[data-f=type]').dataset.val || '' })); }
   if (fs.tab === 'move') { fs.cats = new Set([...f.querySelectorAll('[data-cat]')].filter(x => x.checked).map(x => x.dataset.cat)); fs.mnums = [...f.querySelectorAll('[data-row="mnums"]')].map(r => ({ stat: r.querySelector('[data-f=stat]').value, op: r.querySelector('[data-f=op]').value, val: r.querySelector('[data-f=val]').value })); }
   updatePreview();
 }
 // duplicant rows: append a fresh row only when the last one has been committed (change / blur), never mid-typing
-function ensureDupRow(kind) { const fs = FS; if (kind === 'regs') { if (!fs.regs.some(r => !r.reg)) { fs.regs.push({ rel: 'r', reg: '' }); $('#regs-rows').insertAdjacentHTML('beforeend', regRow(fs.regs[fs.regs.length - 1], fs.regs.length - 1)); } return; }
+function ensureDupRow(kind) { const fs = FS; if (kind === 'regs') { if (!fs.regs.some(r => !r.reg)) { fs.regs.push({ rel: 'r', reg: '', neg: false }); $('#regs-rows').insertAdjacentHTML('beforeend', regRow(fs.regs[fs.regs.length - 1], fs.regs.length - 1)); } return; }
   if (kind === 'matchups') { if (!fs.matchups.some(r => !r.type)) { fs.matchups.push({ rel: 'weak', type: '' }); $('#matchups-rows').insertAdjacentHTML('beforeend', matchRow(fs.matchups[fs.matchups.length - 1], fs.matchups.length - 1)); } return; }
   const rows = fs[kind]; if (rows.some(r => r.val === '')) return; const r = { stat: kind === 'stats' ? 'spe' : 'bp', op: '>=', val: '' }; rows.push(r); $('#' + kind + '-rows').insertAdjacentHTML('beforeend', dupRow(kind, r, rows.length - 1, kind === 'stats' ? STAT_OPTS : MNUM_OPTS)); }
 function updatePreview() { if (!FS) return; const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || ''; const go = $('#go'); if (go) go.disabled = !q; const c = $('#qcount'); if (c) { let txt = ''; if (q) { try { const n = search(IDX, q).results.length; txt = n === 1 ? '1 result' : n + ' results'; } catch (e) { txt = e instanceof QueryError ? (e.kind === 'syntax' ? 'syntax error' : 'scope error') : ''; } } c.textContent = txt; } }
@@ -617,6 +617,7 @@ function bindForm() {
   f.addEventListener('click', ev => { const pp = ev.target.closest('[data-pillpick]'); if (pp) { ev.preventDefault(); const ps = pp.closest('.pillsel'); ps.dataset.val = pp.dataset.pillpick; ps.querySelector('.pill-btn').innerHTML = pill(pp.dataset.pillpick); ps.querySelector('.pill-menu').hidden = true; readForm(); ensureDupRow(ps.closest('[data-row]').dataset.row); return; }
     const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); const input = r.closest('.tok-wrap').querySelector('.tok-in'); pick(input, r.dataset.pick); } });
   f.addEventListener('click', ev => {
+    const rp = ev.target.closest('[data-rowpol]'); if (rp) { rp.classList.toggle('not'); rp.classList.toggle('is'); rp.textContent = rp.classList.contains('not') ? 'NOT' : 'IS'; readForm(); return; }
     const pol = ev.target.closest('[data-pol]'); if (pol) { const x = FS[pol.dataset.pol][Number(pol.dataset.i)]; x.neg = !x.neg; rerenderTokens(pol.dataset.pol); return; }
     const tx = ev.target.closest('[data-tx]'); if (tx) { FS[tx.dataset.tx].splice(Number(tx.dataset.i), 1); rerenderTokens(tx.dataset.tx); return; }
     if (ev.target.classList.contains('tokens')) ev.target.querySelector('.tok-in')?.focus();
