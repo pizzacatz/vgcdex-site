@@ -472,7 +472,7 @@ function subRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial); 
   if (fld === 'cat') return { group: 'Category', rows: f([['physical', 'Physical'], ['special', 'Special'], ['status', 'Status']]) };
   if (fld === 'flag') return { group: 'Other properties', rows: f(MECH.map(([x, l]) => [x, l])) };
   if (fld === 'target') return { group: 'Target', rows: f([['spread', 'Spread (hits more than one)'], ['single', 'Single target']]) };
-  if (fld === 'class') return { group: 'Classifications', rows: f(Object.values(CLASS_BY_FLAG).sort().map(c => [quote(c), c])) };
+  if (fld === 'class') return { group: 'Classifications', plain: true, rows: f(Object.values(CLASS_BY_FLAG).sort().map(c => [quote(c), c])) };
   if (fld === 'is') return { group: 'Criteria', rows: f([['spread', 'Spread move'], ['variable', 'Variable-power move']]) };
   return null; }
 let MENU_INPUT_KEY = null;
@@ -480,13 +480,13 @@ function mainRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial);
   if (!ctx.field) { const rows = []; let names = []; if (ctx.partial.length >= 2) names = IDX.ents.filter(e => e.norm.startsWith(q) || e.compact.startsWith(qc)).slice(0, 8).map(e => [quote(e.name), KIND_LABEL[e.kind]]); const fields = f(MAIN_FIELDS).slice(0, 10); return { group: names.length ? 'Names' : 'Fields', rows: names.concat(fields.map(([v, l]) => [v, l])), groups: names.length && fields.length ? names.length : 0, pills: false }; }
   const fld = F[ctx.field] ? F[ctx.field].name : ctx.field; const types = f(IDX.types.map(t => [t, cap(t)]));
   if (['t', 'weak', 'xweak', 'resists', 'xresists', 'immune'].includes(fld)) return { group: 'Types', rows: types, pills: true };
-  if (fld === 'a') return { group: 'Abilities', rows: f(IDX.ents.filter(e => e.kind === 'ability').map(e => [quote(e.name), e.name])).slice(0, 12) };
-  if (fld === 'm') return { group: 'Moves', rows: f(IDX.ents.filter(e => e.kind === 'move').map(e => [quote(e.name), e.name])).slice(0, 12) };
-  if (fld === 'lb') return { group: 'Pokémon', rows: f(IDX.ents.filter(e => e.kind === 'species' && !e.is_mega).map(e => [quote(e.name), e.name])).slice(0, 12) };
+  if (fld === 'a') return { group: 'Abilities', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'ability').map(e => [quote(e.name), e.name])).slice(0, 12) };
+  if (fld === 'm') return { group: 'Moves', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'move').map(e => [quote(e.name), e.name])).slice(0, 12) };
+  if (fld === 'lb') return { group: 'Pokémon', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'species' && !e.is_mega).map(e => [quote(e.name), e.name])).slice(0, 12) };
   if (fld === 'kind') return { group: 'Kinds', rows: f(KINDS.map(k => [k, KIND_LABEL[k]])) };
   if (fld === 'is') return { group: 'Criteria', rows: f([['mega', 'Mega forme'], ['spread', 'Spread move'], ['variable', 'Variable-power move'], ['consumable', 'Consumable item'], ['held', 'Held item']]) };
-  if (fld === 'cat') return { group: 'Categories', rows: f([['physical', 'Physical (move)'], ['special', 'Special (move)'], ['status', 'Status (move)'], ...IDX_ITEM_CATS.map(c => [quote(c), c + ' (item)'])]) };
-  if (fld === 'class') return { group: 'Classifications', rows: f(Object.values(CLASS_BY_FLAG).sort().map(c => [quote(c), c])) };
+  if (fld === 'cat') return { group: 'Categories', plain: true, rows: f([['physical', 'Physical (move)'], ['special', 'Special (move)'], ['status', 'Status (move)'], ...IDX_ITEM_CATS.map(c => [quote(c), c + ' (item)'])]) };
+  if (fld === 'class') return { group: 'Classifications', plain: true, rows: f(Object.values(CLASS_BY_FLAG).sort().map(c => [quote(c), c])) };
   if (fld === 'flag') return { group: 'Properties', rows: f(MECH.map(([x, l]) => [x, l])) };
   if (fld === 'target') return { group: 'Target', rows: f([['spread', 'Spread'], ['single', 'Single target']]) };
   if (fld === 'order') return { group: 'Sort by', rows: f(SORTS.filter(([v]) => v).map(([v, l]) => [v, l])) };
@@ -494,11 +494,11 @@ function mainRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial);
   return null; }
 function openMainMenu(input) { const menu = $('#mainmenu'); if (!menu) return; const ctx = subContext(input); const sr = ctx && mainRows(ctx); if (!sr || !sr.rows.length) { menu.hidden = true; MENU = { key: null, rows: [], hi: -1 }; return; }
   MENU = { key: 'main', rows: sr.rows, hi: ctx.partial ? 0 : -1, input, menu, ctx };
-  let html = ''; sr.rows.forEach(([v, l], i) => { if (i === 0) html += `<div class="tok-menu-group">${esc(sr.group)}</div>`; if (sr.groups && i === sr.groups) html += `<div class="tok-menu-group">Fields</div>`; html += `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${sr.pills ? pill(v) : `<code>${esc(v)}</code> <span class="muted">${esc(l)}</span>`}</div>`; });
+  let html = ''; sr.rows.forEach(([v, l], i) => { if (i === 0) html += `<div class="tok-menu-group">${esc(sr.group)}</div>`; if (sr.groups && i === sr.groups) html += `<div class="tok-menu-group">Fields</div>`; const isName = sr.groups && i < sr.groups; html += `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${sr.pills ? pill(v) : (sr.plain || isName) ? `${esc(isName ? v.replace(/^"|"$/g, '') : l)}${isName ? ` <span class="muted">${esc(l)}</span>` : ''}` : `<code>${esc(v)}</code> <span class="muted">${esc(l)}</span>`}</div>`; });
   menu.innerHTML = html; menu.hidden = false; }
 function openSubMenu(input) { MENU_INPUT_KEY = input.dataset.tkin; const menu = input.closest('.tok-wrap').querySelector('.tok-menu'); const ctx = subContext(input); const sr = ctx && subRows(ctx); if (!sr || !sr.rows.length) { menu.hidden = true; MENU = { key: null, rows: [], hi: -1 }; return; }
   MENU = { key: 'sub', rows: sr.rows, hi: ctx.partial ? 0 : -1, input, menu, ctx };
-  menu.innerHTML = `<div class="tok-menu-group">${esc(sr.group)}</div>` + sr.rows.map(([v, l], i) => `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${sr.pills ? pill(v) : `<code>${esc(v)}</code> <span class="muted">${esc(l)}</span>`}</div>`).join(''); menu.hidden = false; }
+  menu.innerHTML = `<div class="tok-menu-group">${esc(sr.group)}</div>` + sr.rows.map(([v, l], i) => `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${sr.pills ? pill(v) : sr.plain ? esc(l) : `<code>${esc(v)}</code> <span class="muted">${esc(l)}</span>`}</div>`).join(''); menu.hidden = false; }
 function pickSub(input, v) { const ctx = MENU.ctx || subContext(input); const isField = !ctx.field; const insert = isField ? v : (ctx.field + ':' + v); const tail = input.value.slice(ctx.end); const needSpace = !isField && !/^\s/.test(tail) ; const nv = input.value.slice(0, ctx.start) + insert + (needSpace ? ' ' : '') + tail; input.value = nv; const pos = ctx.start + insert.length + (needSpace ? 1 : 0); const wasMain = MENU.key === 'main'; input.focus(); try { input.setSelectionRange(pos, pos); } catch (e) {} readForm(); if (isField && /[:=]$/.test(insert)) (wasMain ? openMainMenu : openSubMenu)(input); else closeMenu(); }
 const looksExpr = v => /[:<>=\/()]/.test(v);
 function nudgeIntoView(input) { if (window.innerWidth > 700) return; setTimeout(() => { const r = input.getBoundingClientRect(); if (r.top > 140 || r.top < 0) window.scrollBy({ top: r.top - 90, behavior: 'smooth' }); }, 250); }
