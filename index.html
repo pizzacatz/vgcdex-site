@@ -97,7 +97,7 @@ dl.eff{display:grid;grid-template-columns:80px 1fr;gap:6px 10px;margin:0;align-i
 /* ---- advanced search form (home) — Scryfall /advanced measurements on our tokens ---- */
 .adv{padding:6px 20px 30px}
 .form-layout{padding:5px 0 15px}
-.form-row{display:flex;flex-flow:row wrap;justify-content:flex-start;padding:12px 0 14px;border-bottom:1px solid var(--line);max-width:100%}
+.form-row{display:flex;flex-flow:row wrap;justify-content:flex-start;padding:12px 0 14px;border-bottom:1px solid var(--line);max-width:100%}.form-row[hidden]{display:none}
 .form-row-label{width:18%;min-width:180px;height:48px;display:flex;align-items:center;font-size:16px;font-weight:300;line-height:20px;padding:0 8px 0 0;margin:0;color:var(--text)}
 .form-row-label.short{height:36px}.form-row-label svg{width:18px;height:18px;margin:0 7px 0 0;flex:none;color:var(--muted)}
 .form-row-content{width:80%;max-width:100%;display:flex;flex-flow:column nowrap;align-items:flex-start}
@@ -141,6 +141,8 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 .also code{color:var(--accent)}.editadv{font-size:.85rem;margin-left:8px}
 @media (max-width:700px){.form-row-label{width:100%;min-width:0;height:auto;padding:0 0 6px}.form-row-label.short{height:auto}.form-row-content{width:100%}.form-input,.tok-wrap,#stats-rows,#mnums-rows,#matchups-rows,#msubs-rows{width:100%;max-width:none;min-width:0}.form-input.auto,select.form-input{width:auto}.dup>select.form-input{flex:0 1 auto;min-width:0;font-size:14px;padding:8px 24px 8px 8px;background-position:right 6px center}.dup>input[type=number]{flex:1 1 60px;padding-right:8px}.pillsel>.pill-btn.form-input.auto{width:132px;min-width:132px}.dup>input[type=number]{min-width:72px}.asc{margin-bottom:8px}
 .tok{height:44px;gap:8px}.tok-x{width:36px;height:36px;font-size:18px}.pol{height:36px;width:48px;font-size:12px}.tok-in{height:36px}.tok-menu-row{min-height:44px;display:flex;align-items:center}.pill-menu .tok-menu-row{min-height:44px}.asc{height:auto;min-height:44px}.asc input[type=checkbox],.asc input[type=radio]{width:30px;height:30px}}
+.tabs{display:flex;gap:4px;margin:14px 0 0;border-bottom:2px solid var(--line)}.tab{padding:10px 16px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px}.tab:hover{text-decoration:none;color:var(--text)}.tab.on{color:var(--accent);border-bottom-color:var(--accent)}@media (max-width:700px){.tab{padding:10px 8px;flex:1;text-align:center;font-size:14px}}
+.tok-expr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--accent-soft);color:var(--text);padding:2px 6px;border-radius:2px}
 /* ---- footer ---- */
 .foot{background:var(--gpe-black);color:#cfc4ba;font-size:.8rem;padding:28px 0;margin-top:30px;border-top:1px solid var(--gpe-surface)}.foot b{color:#fff}.foot code{color:var(--gpe-gold)}
 .foot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px}.foot .proto{display:inline-block;margin-top:6px;font-size:.7rem;padding:2px 8px;border-radius:999px;border:1px solid var(--gpe-gold);color:var(--gpe-gold);letter-spacing:.06em;text-transform:uppercase}
@@ -151,6 +153,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260916021644"></script>
+<script src="app.js?v=20260916024318"></script>
 </body>
 </html>
