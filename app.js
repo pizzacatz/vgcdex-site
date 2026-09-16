@@ -513,7 +513,7 @@ function advForm() {
     + row('target', 'Target', band(sel('target', [['any', 'Any target'], ['spread', 'Spread (hits more than one)'], ['single', 'Single target']], fs.target)), '')
     + row('lb', 'Learned by', band(singlePicker('species', 'lb', fs.lb)), 'Only moves this Pokémon can learn.');
   else if (T === 'item') body = row('item', 'Item category', band(tokens('icats')), 'Berry, Mega Stone, Recovery, Consumable, Held… Every “IS” category must apply; “NOT” excludes.');
-  const prefs = row('pref', 'Preferences', band(sel('view', [['grid', 'Display as Grid'], ['list', 'Display as List']], fs.view) + sel('order', sorts.map(([v, l]) => [v, 'Sort by ' + l]), fs.order) + sel('dir', [['', 'Default order'], ['asc', 'Ascending'], ['desc', 'Descending']], fs.dir), 'prefs'), '');
+  const prefs = row('pref', 'Preferences', band(sel('view', [['grid', 'Grid'], ['list', 'List']], fs.view) + sel('order', sorts.map(([v, l]) => [v, 'Sort by ' + l]), fs.order) + sel('dir', [['', 'Default'], ['asc', 'Ascending'], ['desc', 'Descending']], fs.dir), 'prefs'), '');
   return `<section class="wrap adv">${tabs}<form id="adv" class="form-layout" novalidate>
   ${shared1}${body}<div class="settings-sep"><span>Search settings</span></div>${regRow}${prefs}
   <div class="form-row also" ${fs.also.length ? '' : 'hidden'}><label class="form-row-label short">${icon('crit')} Also</label><div class="form-row-content"><div class="band"><code id="also">${esc(fs.also.join(' '))}</code></div><p class="form-row-tip">Terms from the typed query this tab has no control for. They stay in the search.</p></div></div>
