@@ -577,7 +577,7 @@ function rerenderRows(k, keepFocus) { const box = $('#' + k + '-rows'); if (!box
 // ----- render + events -----
 function render() {
   const st = state();
-  let body; if (st.detail) body = detail(st.detail); else if (st.guide) body = guide(); else if (st.q && !st.adv) body = results(st); else { if (st.adv && st.q) { FS = queryToForm(st.q); FS.view = st.view; } else if (!FS || !st.adv) FS = emptyForm(); body = advForm(); }
+  let body; if (st.detail) body = detail(st.detail); else if (st.guide) body = guide(); else if (st.q && !st.adv) body = results(st); else { if (st.adv && st.q) { if (!FS || FS.src !== st.q) { FS = queryToForm(st.q); FS.src = st.q; FS.view = st.view; } } else if (!FS || FS.src) { FS = emptyForm(); } body = advForm(); }
   app.innerHTML = header(st) + `<main>${body}</main>` + footer();
   if (location.hash) { const tgt = document.getElementById(location.hash.slice(1)); if (tgt) setTimeout(() => tgt.scrollIntoView({ block: 'start' }), 0); }
   document.title = st.detail ? `${IDX.ents.find(x => x.kind === st.detail.kind && x.slug === st.detail.slug)?.name || 'VGC Dex'} · VGC Dex` : st.q ? `${st.q} · VGC Dex` : 'VGC Dex';
