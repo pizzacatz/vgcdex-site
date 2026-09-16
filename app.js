@@ -558,8 +558,8 @@ function advForm() {
     + row('move', 'Learns', band(tokens('moves')), 'Named moves must all be in the learnset; “NOT” moves must not be. An expression such as <code>t:rock cat:physical bp>=75</code> describes one move to learn. See <a href="?guide=1#subquery" data-nav>the syntax guide</a>.');
   else if (T === 'move') body = typesRow
     + row('cat', 'Category', band(['physical', 'special', 'status'].map(c => cb('data-cat', c, cap(c), fs.cats.has(c))).join(''), 'cbs'), 'Only return moves of the selected categories.', true)
-    + row('num', 'Move numbers', `<div id="mnums-rows">${fs.mnums.map((r, i) => dupRow('mnums', r, i, MNUM_OPTS)).join('')}</div>`, 'Base power, accuracy, PP (Champions values) and priority. Moves that never miss count as accuracy above 100.')
-    + row('flag', 'Properties', band(tokens('props')), 'The game’s Classifications (Punching, Sound-Based, Ball &amp; Bomb…) and other move properties in plain words. Every “IS” property must apply; “NOT” excludes.')
+    + row('num', 'Move numbers', `<div id="mnums-rows">${fs.mnums.map((r, i) => dupRow('mnums', r, i, MNUM_OPTS)).join('')}</div>`, 'Base power, accuracy, PP and priority. Moves that never miss count as accuracy above 100.')
+    + row('flag', 'Properties', band(tokens('props')), 'Punching, Sound-Based, and other move properties in plain words. Every “IS” property must apply; “NOT” excludes.')
     + row('target', 'Target', band(sel('target', [['any', 'Any target'], ['spread', 'Spread (hits more than one)'], ['single', 'Single target']], fs.target)), '')
     + row('lb', 'Learned by', band(singlePicker('species', 'lb', fs.lb)), 'Only moves this Pokémon can learn.');
   else if (T === 'item') body = row('item', 'Item category', band(tokens('icats')), 'Berry, Mega Stone, Recovery, Consumable, Held… Every “IS” category must apply; “NOT” excludes.');
