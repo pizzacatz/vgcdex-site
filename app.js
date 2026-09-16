@@ -365,6 +365,7 @@ const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const pill = t => t ? `<span class="chip type-${t}">${t}</span>` : `<span class="pill-none">Type…</span>`;
 const ICONS = { name: 'M3 5h18v14H3z M7 9h6 M7 13h10', text: 'M4 5h16 M4 9h16 M4 13h10 M4 17h7', type: 'M20 12l-8 8-8-8 8-8z', ability: 'M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7z', move: 'M5 12h14 M13 6l6 6-6 6', stat: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2', forme: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 8v8 M8 12h8', reg: 'M5 4h14v16H5z M9 4v16 M13 9h3 M13 13h3', match: 'M12 3l9 5-9 5-9-5z M3 13l9 5 9-5', cat: 'M4 6h16 M4 12h16 M4 18h16', crit: 'M9 6h11 M9 12h11 M9 18h11 M4 6h1 M4 12h1 M4 18h1', num: 'M4 7h16 M4 12h16 M4 17h16 M8 4v16 M16 4v16', flag: 'M5 21V4h12l-2 4 2 4H5', target: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z', lb: 'M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z M8 7h7', item: 'M6 8h12l1 12H5z M9 8V6a3 3 0 0 1 6 0v2', pref: 'M14 4l6 6-9 9H5v-6z M12 6l6 6', kinds: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z' };
 const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[k]}"/></svg>`;
+const naturalDir = key => !key ? '' : ['hp', 'atk', 'def', 'spa', 'spd', 'spe', 'total', 'bp', 'acc', 'pp', 'prio'].includes(key) ? 'desc' : 'asc';
 const TABS = [['species', 'Pokémon'], ['move', 'Moves'], ['ability', 'Abilities'], ['item', 'Items']];
 function emptyForm() { return { tab: 'species', name: '', text: '', types: [], typeMode: 'all', abilities: [], moves: [], stats: [{ stat: 'spe', op: '>=', val: '' }], formes: { base: true, mega: true }, regStatus: 'legal', matchups: [{ rel: 'weak', type: '' }], cats: new Set(), mnums: [{ stat: 'bp', op: '>=', val: '' }], props: [], target: 'any', lb: '', icats: [], view: 'grid', order: '', dir: '', also: [] }; }
 function buildQuery(fs) {
@@ -389,7 +390,7 @@ function buildQuery(fs) {
     if (fs.target !== 'any') t.push('target:' + fs.target);
     if (fs.lb.trim()) t.push('lb:' + quote(fs.lb.trim())); }
   if (tab === 'item') tok(fs.icats, 'cat', true);
-  if (fs.order) { t.push('order:' + fs.order); if (fs.dir) t.push('dir:' + fs.dir); }
+  if (fs.order) { t.push('order:' + fs.order); if (fs.dir && fs.dir !== naturalDir(fs.order)) t.push('dir:' + fs.dir); }
   return t.concat(fs.also).join(' ');
 }
 function astText(n) { if (!n) return ''; if (n.type === 'word') return quote(n.v); if (n.type === 'term') return n.field + n.op + (n.sub ? '(' + astText(n.sub) + ')' : n.isRegex ? '/' + n.val + '/' : quote(n.val)); if (n.type === 'not') return '-' + astText(n.node); if (n.type === 'or') return '(' + n.items.map(astText).join(' or ') + ')'; return n.items.map(astText).join(' '); }
@@ -535,7 +536,7 @@ function advForm() {
     + row('target', 'Target', band(sel('target', [['any', 'Any target'], ['spread', 'Spread (hits more than one)'], ['single', 'Single target']], fs.target)), '')
     + row('lb', 'Learned by', band(singlePicker('species', 'lb', fs.lb)), 'Only moves this Pokémon can learn.');
   else if (T === 'item') body = row('item', 'Item category', band(tokens('icats')), 'Berry, Mega Stone, Recovery, Consumable, Held… Every “IS” category must apply; “NOT” excludes.');
-  const prefs = row('pref', 'Preferences', band(sel('view', [['grid', 'Display as Grid'], ['list', 'Display as List']], fs.view) + sel('order', sorts.map(([v, l]) => [v, 'Sort by ' + l]), fs.order) + sel('dir', [['', 'Default order'], ['asc', 'Ascending'], ['desc', 'Descending']], fs.dir), 'prefs'), '');
+  const prefs = row('pref', 'Preferences', band(sel('view', [['grid', 'Display as Grid'], ['list', 'Display as List']], fs.view) + sel('order', sorts.map(([v, l]) => [v, 'Sort by ' + l]), fs.order) + `<select class="form-input auto" data-fs="dir" ${fs.order ? '' : 'disabled'}>${[['asc', 'Ascending'], ['desc', 'Descending']].map(([v, l]) => `<option value="${v}" ${(fs.dir || naturalDir(fs.order)) === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`, 'prefs'), '');
   return `<section class="wrap adv">${tabs}<form id="adv" class="form-layout" novalidate>
   ${shared1}${body}<div class="settings-sep"><span>Search settings</span></div>${regRow}${prefs}
   <div class="form-row also" ${fs.also.length ? '' : 'hidden'}><label class="form-row-label short">${icon('crit')} Also</label><div class="form-row-content"><div class="band"><code id="also">${esc(fs.also.join(' '))}</code></div><p class="form-row-tip">Terms from the typed query this tab has no control for. They stay in the search.</p></div></div>
@@ -544,7 +545,9 @@ function advForm() {
 }
 function readForm() {
   const f = $('#adv'); if (!f) return; const fs = FS;
+  const prevOrder = fs.order;
   for (const el of f.querySelectorAll('[data-fs]')) { if (el.type === 'radio') { if (el.checked) fs[el.dataset.fs] = el.value; } else fs[el.dataset.fs] = el.value; }
+  if (fs.order !== prevOrder) { fs.dir = ''; const d = f.querySelector('[data-fs=dir]'); if (d) { d.disabled = !fs.order; d.value = naturalDir(fs.order) || 'asc'; } }
   if (fs.tab === 'species') { fs.formes = { base: !!f.querySelector('[data-forme=base]')?.checked, mega: !!f.querySelector('[data-forme=mega]')?.checked }; if (!fs.formes.base && !fs.formes.mega) { fs.formes = { base: true, mega: true }; f.querySelectorAll('[data-forme]').forEach(x => x.checked = true); } fs.stats = [...f.querySelectorAll('[data-row="stats"]')].map(r => ({ stat: r.querySelector('[data-f=stat]').value, op: r.querySelector('[data-f=op]').value, val: r.querySelector('[data-f=val]').value })); fs.matchups = [...f.querySelectorAll('[data-row="matchups"]')].map(r => ({ rel: r.querySelector('[data-f=rel]').value, type: r.querySelector('[data-f=type]').dataset.val || '' })); }
   if (fs.tab === 'move') { fs.cats = new Set([...f.querySelectorAll('[data-cat]')].filter(x => x.checked).map(x => x.dataset.cat)); fs.mnums = [...f.querySelectorAll('[data-row="mnums"]')].map(r => ({ stat: r.querySelector('[data-f=stat]').value, op: r.querySelector('[data-f=op]').value, val: r.querySelector('[data-f=val]').value })); }
   updatePreview();
