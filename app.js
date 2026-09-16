@@ -477,12 +477,12 @@ function subRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial); 
   return null; }
 let MENU_INPUT_KEY = null;
 function mainRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial); const f = x => { const pre = x.filter(([v]) => q && (norm(v).startsWith(q) || compact(v).startsWith(qc))); const rest = x.filter(([v, l]) => !pre.includes(x.find(y => y[0] === v)) && (!q || norm(l).includes(q))); return q ? pre.concat(rest) : x; };
-  if (!ctx.field) { const rows = []; let names = []; if (ctx.partial.length >= 2) names = IDX.ents.filter(e => e.norm.startsWith(q) || e.compact.startsWith(qc)).slice(0, 8).map(e => [quote(e.name), KIND_LABEL[e.kind]]); const fields = f(MAIN_FIELDS).slice(0, 10); return { group: names.length ? 'Names' : 'Fields', rows: names.concat(fields.map(([v, l]) => [v, l])), groups: names.length && fields.length ? names.length : 0, pills: false }; }
+  if (!ctx.field) { const rows = []; let names = []; if (ctx.partial.length >= 2) names = IDX.ents.filter(e => e.norm.startsWith(q) || e.compact.startsWith(qc)).map(e => [quote(e.name), KIND_LABEL[e.kind]]); const fields = f(MAIN_FIELDS); return { group: names.length ? 'Names' : 'Fields', rows: names.concat(fields.map(([v, l]) => [v, l])), groups: names.length && fields.length ? names.length : 0, pills: false }; }
   const fld = F[ctx.field] ? F[ctx.field].name : ctx.field; const types = f(IDX.types.map(t => [t, cap(t)]));
   if (['t', 'weak', 'xweak', 'resists', 'xresists', 'immune'].includes(fld)) return { group: 'Types', rows: types, pills: true };
-  if (fld === 'a') return { group: 'Abilities', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'ability').map(e => [quote(e.name), e.name])).slice(0, 12) };
-  if (fld === 'm') return { group: 'Moves', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'move').map(e => [quote(e.name), e.name])).slice(0, 12) };
-  if (fld === 'lb') return { group: 'Pokémon', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'species' && !e.is_mega).map(e => [quote(e.name), e.name])).slice(0, 12) };
+  if (fld === 'a') return { group: 'Abilities', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'ability').map(e => [quote(e.name), e.name])) };
+  if (fld === 'm') return { group: 'Moves', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'move').map(e => [quote(e.name), e.name])) };
+  if (fld === 'lb') return { group: 'Pokémon', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'species' && !e.is_mega).map(e => [quote(e.name), e.name])) };
   if (fld === 'kind') return { group: 'Kinds', rows: f(KINDS.map(k => [k, KIND_LABEL[k]])) };
   if (fld === 'is') return { group: 'Criteria', rows: f([['mega', 'Mega forme'], ['spread', 'Spread move'], ['variable', 'Variable-power move'], ['consumable', 'Consumable item'], ['held', 'Held item']]) };
   if (fld === 'cat') return { group: 'Categories', plain: true, rows: f([['physical', 'Physical (move)'], ['special', 'Special (move)'], ['status', 'Status (move)'], ...IDX_ITEM_CATS.map(c => [quote(c), c + ' (item)'])]) };
@@ -575,7 +575,7 @@ function bindForm() {
   const f = $('#adv'); if (!f) return; updatePreview();
   f.addEventListener('input', ev => { const t = ev.target; if (t.classList.contains('tok-in')) { openMenu(t); if (t.dataset.single) readForm(); return; } readForm(); const row = t.closest('[data-row]'); if (row && t.dataset.f === 'val' && t.value !== '') ensureDupRow(row.dataset.row); });
   f.addEventListener('focusin', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in')) openMenu(t); });
-  f.addEventListener('focusout', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in')) setTimeout(() => { if (!document.activeElement || !document.activeElement.closest || !document.activeElement.closest('.tok-wrap')) closeMenu(); }, 120); });
+  f.addEventListener('focusout', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in')) setTimeout(() => { if (!document.activeElement || !document.activeElement.closest || !document.activeElement.closest('.tok-wrap')) closeMenu(); }, 250); });
   f.addEventListener('change', ev => { if (ev.target.classList.contains('tok-in')) return; readForm(); const row = ev.target.closest('[data-row]'); if (row && (ev.target.dataset.f === 'val' || ev.target.dataset.f === 'cat')) ensureDupRow(row.dataset.row); });
   f.addEventListener('focusout', ev => { const row = ev.target.closest && ev.target.closest('[data-row]'); if (row && ev.target.dataset.f === 'val') { readForm(); ensureDupRow(row.dataset.row); } });
   f.addEventListener('keydown', ev => { const t = ev.target; if (!(t.classList && t.classList.contains('tok-in'))) return;
@@ -584,7 +584,8 @@ function bindForm() {
     if (ev.key === 'Escape') { closeMenu(); return; }
     if (ev.key === 'Enter') { if (t.dataset.acsub && !(MENU.rows.length && MENU.hi >= 0)) { closeMenu(); return; } if (MENU.key === 'sub' && !(MENU.rows.length && MENU.hi >= 0)) { ev.preventDefault(); if (addToken(t.dataset.tkin, t.value)) { closeMenu(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } return; } ev.preventDefault(); if (MENU.rows.length && MENU.hi >= 0) pick(t, MENU.rows[MENU.hi][0]); else if (t.dataset.single) { closeMenu(); readForm(); } else if (addToken(t.dataset.tkin, t.value)) { closeMenu(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } return; }
     if (ev.key === 'Backspace' && !t.value && !t.dataset.single && FS[t.dataset.tkin].length) { FS[t.dataset.tkin].pop(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } });
-  f.addEventListener('pointerdown', ev => { const pp = ev.target.closest('[data-pillpick]'); if (pp) { ev.preventDefault(); const ps = pp.closest('.pillsel'); ps.dataset.val = pp.dataset.pillpick; ps.querySelector('.pill-btn').innerHTML = pill(pp.dataset.pillpick); ps.querySelector('.pill-menu').hidden = true; readForm(); ensureDupRow(ps.closest('[data-row]').dataset.row); return; }
+  f.addEventListener('mousedown', ev => { if (ev.target.closest('.tok-menu')) ev.preventDefault(); });
+  f.addEventListener('click', ev => { const pp = ev.target.closest('[data-pillpick]'); if (pp) { ev.preventDefault(); const ps = pp.closest('.pillsel'); ps.dataset.val = pp.dataset.pillpick; ps.querySelector('.pill-btn').innerHTML = pill(pp.dataset.pillpick); ps.querySelector('.pill-menu').hidden = true; readForm(); ensureDupRow(ps.closest('[data-row]').dataset.row); return; }
     const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); const input = r.closest('.tok-wrap').querySelector('.tok-in'); pick(input, r.dataset.pick); } });
   f.addEventListener('click', ev => {
     const pol = ev.target.closest('[data-pol]'); if (pol) { const x = FS[pol.dataset.pol][Number(pol.dataset.i)]; x.neg = !x.neg; rerenderTokens(pol.dataset.pol); return; }
@@ -609,9 +610,10 @@ function render() {
   if (location.hash) { const tgt = document.getElementById(location.hash.slice(1)); if (tgt) setTimeout(() => tgt.scrollIntoView({ block: 'start' }), 0); }
   document.title = st.detail ? `${IDX.ents.find(x => x.kind === st.detail.kind && x.slug === st.detail.slug)?.name || 'VGC Dex'} · VGC Dex` : st.q ? `${st.q} · VGC Dex` : 'VGC Dex';
   bindForm();
-  const qi = $('#q'); if (qi) { qi.addEventListener('input', () => openMainMenu(qi)); qi.addEventListener('focus', () => openMainMenu(qi)); qi.addEventListener('blur', () => setTimeout(() => { if (MENU.key === 'main') closeMenu(); }, 150));
+  const qi = $('#q'); if (qi) { qi.addEventListener('input', () => openMainMenu(qi)); qi.addEventListener('focus', () => openMainMenu(qi)); qi.addEventListener('blur', () => setTimeout(() => { if (MENU.key === 'main') closeMenu(); }, 250));
     qi.addEventListener('keydown', ev => { if (MENU.key !== 'main' || (MENU.menu && MENU.menu.hidden)) { if (ev.key === 'ArrowDown') { ev.preventDefault(); openMainMenu(qi); } return; } if (ev.key === 'ArrowDown') { ev.preventDefault(); moveHi(1); } else if (ev.key === 'ArrowUp') { ev.preventDefault(); moveHi(-1); } else if (ev.key === 'Escape') closeMenu(); else if (ev.key === 'Enter' && MENU.hi >= 0) { ev.preventDefault(); pickSub(qi, MENU.rows[MENU.hi][0]); } else if (ev.key === 'Tab' && MENU.hi >= 0) { ev.preventDefault(); pickSub(qi, MENU.rows[MENU.hi][0]); } });
-    $('#mainmenu').addEventListener('pointerdown', ev => { const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); pickSub(qi, r.dataset.pick); } }); }
+    $('#mainmenu').addEventListener('mousedown', ev => ev.preventDefault());
+    $('#mainmenu').addEventListener('click', ev => { const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); pickSub(qi, r.dataset.pick); } }); }
   const f = $('#form'); if (f) f.addEventListener('submit', ev => { ev.preventDefault(); const v = $('#q').value.trim(); nav(v ? qlink(v) + (st.view !== 'grid' ? '&view=' + st.view : '') : ''); });
   const sort = $('#sort'); if (sort) sort.addEventListener('change', () => { let q = st.q.replace(/\s*\b(order|sort|dir|direction):\S+/g, '').trim(); if (sort.value) q += ' order:' + sort.value; nav(qlink(q) + (st.view !== 'grid' ? '&view=' + st.view : '')); });
   for (const id of ['random', 'random2']) { const el = $('#' + id); if (el) el.addEventListener('click', ev => { ev.preventDefault(); const sp = IDX.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); }
