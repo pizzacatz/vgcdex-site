@@ -148,6 +148,15 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 .band.prefs{width:560px;max-width:100%;flex-wrap:nowrap;gap:8px}.band.prefs>select.form-input.auto{flex:0 0 auto;width:auto;min-width:0;text-overflow:ellipsis}.band.prefs>select.form-input.auto[data-fs=order]{flex:1 1 0;width:0}
 .settings-sep{display:flex;align-items:center;gap:12px;margin:26px 0 4px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.settings-sep::before,.settings-sep::after{content:"";flex:1;border-top:2px solid var(--line)}.settings-sep::before{flex:0 0 0}.settings-sep+.form-row{border-top:0}
 .tok-expr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--accent-soft);color:var(--text);padding:2px 6px;border-radius:2px}
+
+/* ---- species card (variant D) ---- */
+.sgrid{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+.scard{display:block;width:max-content;flex:none;background:var(--card);border:1px solid var(--line);border-radius:12px;color:var(--text);box-shadow:var(--shadow);padding:10px;transition:transform .08s}.scard:hover{text-decoration:none;transform:translateY(-2px);border-color:var(--accent)}
+.scard .dtop{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center}.scard .art{width:96px;height:96px;display:grid;place-items:center;position:relative}.scard .art img{width:96px;height:96px;image-rendering:auto}
+.scard .mega{position:absolute;top:-4px;left:-4px;font-size:.58rem;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:999px;background:var(--gpe-black);color:var(--gpe-gold)}
+.scard table{border-collapse:collapse;width:auto;justify-self:start;font-size:.74rem;line-height:1}.scard td{padding:2px 0}.scard td:first-child{color:var(--muted);padding-right:10px}.scard td:last-child{text-align:right;font-family:ui-monospace,Menlo,monospace;font-weight:600;min-width:3ch}
+.scard .nm{font-weight:600;font-size:.92rem;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;contain:inline-size;text-align:center}.scard .chips{margin-top:4px;contain:inline-size;justify-content:center}
+@media (max-width:700px){.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scard{width:auto;padding:8px}.scard .dtop{grid-template-columns:minmax(0,1fr) auto;gap:8px}.scard .art{width:100%;height:auto;aspect-ratio:1;max-width:96px;justify-self:center}.scard .art img{width:100%;height:100%;max-width:96px}.scard table{font-size:.7rem}.scard td:first-child{padding-right:6px}}
 /* ---- footer ---- */
 .foot{background:var(--gpe-black);color:#cfc4ba;font-size:.8rem;padding:28px 0;margin-top:30px;border-top:1px solid var(--gpe-surface)}.foot b{color:#fff}.foot code{color:var(--gpe-gold)}
 .foot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px}.foot .proto{display:inline-block;margin-top:6px;font-size:.7rem;padding:2px 8px;border-radius:999px;border:1px solid var(--gpe-gold);color:var(--gpe-gold);letter-spacing:.06em;text-transform:uppercase}
@@ -158,6 +167,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260916043515"></script>
+<script src="app.js?v=20260916050821"></script>
 </body>
 </html>
