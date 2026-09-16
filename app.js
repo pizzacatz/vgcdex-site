@@ -230,7 +230,7 @@ function subMatches(subs, e, idx) { const out = []; for (const n of subs) { if (
 
 // ---------- UI (Scryfall-style layout on GeorgiaPlayEvents tokens) ----------
 const $ = s => document.querySelector(s);
-const scroller = () => document.documentElement.classList.contains('ffa') ? document.getElementById('app') : null;
+const scroller = () => null;
 function scrollTop0() { const sc = scroller(); if (sc) sc.scrollTo(0, 0); else window.scrollTo(0, 0); }
 const app = $('#app');
 const STAT_LABEL = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };

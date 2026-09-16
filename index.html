@@ -6,7 +6,7 @@
 <title>VGC Dex</title>
 <meta name="description" content="VGC Dex — a typed, shareable search engine for Pokémon Champions.">
 <script>/* resolve theme before first paint (GeorgiaPlayEvents convention: <html data-theme>) */
-(function(){var t=new URLSearchParams(location.search).get('theme');if(t!=='light'&&t!=='dark')t=null;if(t){try{localStorage.setItem('vgcdex-theme',t)}catch(e){}}if(!t){try{t=localStorage.getItem('vgcdex-theme')}catch(e){}}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;if(/Android/.test(navigator.userAgent)&&/Firefox\//.test(navigator.userAgent))document.documentElement.classList.add('ffa');})();</script>
+(function(){var t=new URLSearchParams(location.search).get('theme');if(t!=='light'&&t!=='dark')t=null;if(t){try{localStorage.setItem('vgcdex-theme',t)}catch(e){}}if(!t){try{t=localStorage.getItem('vgcdex-theme')}catch(e){}}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
 <link rel="icon" href="favicon.ico" sizes="48x48"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0d0d0d">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
 /* ---- semantic layer: light (default) ---- */
 :root{--page:var(--gpe-cream);--card:var(--gpe-card);--card-2:#f7e3cb;--line:#e8d3b8;--text:var(--gpe-ink);--muted:#7a6a58;--accent:var(--gpe-burnt);--accent-hover:var(--gpe-burnt-hover);--accent-contrast:#fff;--accent-soft:#ffe2ca;--focus:rgb(240 160 105/.38);--shadow:0 2px 12px rgb(90 60 30/.14);--err-bg:#fff0ec;--err-line:#d25345;--err-text:#a23a32;--warn-bg:#ffecd8;--warn-line:#d67642;--field:#fffdf8;--field-line:#c6aa90;--bar:#e8d3b8}
 :root[data-theme=dark]{--page:var(--gpe-black);--card:var(--gpe-surface);--card-2:#232323;--line:#4a4647;--text:var(--gpe-paper);--muted:#cfc4ba;--accent:var(--gpe-peach);--accent-hover:#ffc08d;--accent-contrast:#241711;--accent-soft:#3f2c22;--focus:rgb(255 176 114/.42);--shadow:0 2px 12px rgb(0 0 0/.55);--err-bg:#3b1d1b;--err-line:#ff6e62;--err-text:#ffaea5;--warn-bg:#3d2a1d;--warn-line:#ffb072;--field:#151516;--field-line:#665b55;--bar:#2f2f33}
-*{box-sizing:border-box}html,body{overflow-x:clip}html.ffa,html.ffa body{height:100%;overflow:hidden}html.ffa #app{height:100%;overflow-y:auto;overflow-x:clip;overscroll-behavior:contain}html{color-scheme:light}html[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box}html,body{overflow-x:clip}html{color-scheme:light}html[data-theme=dark]{color-scheme:dark}
 html,body{margin:0;background:var(--page);color:var(--text);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent-hover);text-decoration:underline}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
@@ -140,7 +140,7 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 .qwrap{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px}.submit-bar>button{flex:none}.qcount{flex:none;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}.regtext{font-size:16px;padding:8px 0}
 .qpreview{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--accent);padding:4px 0}.qpreview:empty::before{content:'Fill in the form to build a search';color:var(--muted);font-style:italic;font-family:Inter,sans-serif}
 .icon-n{display:inline-flex;align-items:center;gap:6px}.icon-n svg{width:16px;height:16px;flex:none}.icon-n.ok{color:var(--accent);border-color:var(--accent)}
-@media (max-width:700px){.submit-bar{position:fixed;left:0;right:0;bottom:0;margin:0;height:56px;box-sizing:border-box;flex-wrap:nowrap;gap:6px;padding:0 12px;will-change:transform;transform:translateZ(0);backface-visibility:hidden}.form-layout{padding-bottom:72px}.qwrap{flex:1 1 0;min-width:0}.qpreview{display:none}.qcount{flex:1 1 0;min-width:0;white-space:nowrap;font-size:11px}.icon-n{width:34px;height:36px;padding:0;justify-content:center;flex:none}.icon-n .lbl{display:none}.submit-n{padding:0 10px;font-size:13px;height:36px;flex:none}}
+@media (max-width:700px){.submit-bar{position:sticky;bottom:0;height:56px;box-sizing:border-box;flex-wrap:nowrap;gap:6px;padding:0 12px;margin-left:-20px;margin-right:-20px}.qwrap{flex:1 1 0;min-width:0}.qpreview{display:none}.qcount{flex:1 1 0;min-width:0;white-space:nowrap;font-size:11px}.icon-n{width:34px;height:36px;padding:0;justify-content:center;flex:none}.icon-n .lbl{display:none}.submit-n{padding:0 10px;font-size:13px;height:36px;flex:none}}
 .also code{color:var(--accent)}.editadv{font-size:.85rem;margin-left:8px}
 @media (max-width:700px){.form-row-label{width:100%;min-width:0;height:auto;padding:0 0 6px}.form-row-label.short{height:auto}.form-row-content{width:100%}.form-input,.tok-wrap,#stats-rows,#mnums-rows,#matchups-rows,#msubs-rows{width:100%;max-width:none;min-width:0}.form-input.auto,select.form-input{width:auto}.band:not(.cbs){flex-wrap:nowrap}.band>select.form-input.auto{flex:1 1 0;width:0;min-width:0;font-size:14px;padding:8px 22px 8px 8px;background-position:right 6px center;text-overflow:ellipsis}.band.prefs>select.form-input.auto{flex:0 0 auto;width:auto}.band.prefs>select.form-input.auto[data-fs=order]{flex:1 1 0;width:0}.dup>select.form-input{flex:0 1 auto;min-width:0;font-size:14px;padding:8px 24px 8px 8px;background-position:right 6px center}.dup>input[type=number]{flex:1 1 60px;padding-right:8px}.pillsel>.pill-btn.form-input.auto{width:132px;min-width:132px}.dup>input[type=number]{min-width:72px}.asc{margin-bottom:8px}
 .tok{height:44px;gap:8px}.tok-x{width:36px;height:36px;font-size:18px}.pol{height:36px;width:48px;font-size:12px}.tok-in{height:36px}.tok-menu-row{min-height:44px;display:flex;align-items:center}.pill-menu .tok-menu-row{min-height:44px}.asc{height:auto;min-height:44px}.asc input[type=checkbox],.asc input[type=radio]{width:30px;height:30px}}
@@ -168,6 +168,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260916121823"></script>
+<script src="app.js?v=20260916122245"></script>
 </body>
 </html>
