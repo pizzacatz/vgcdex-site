@@ -386,8 +386,10 @@ function detail(d) {
   if (e.kind === 'ability') { const holders = IDX.ents.filter(x => x.kind === 'species' && x.abilitySlugs.includes(e.slug));
     return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><h1>${esc(e.name)}</h1><p>${esc(e.raw.long_desc || e.raw.short_desc || '')}</p><h3>Pokémon <span class="muted">${holders.length}</span></h3><div class="sgrid">${holders.map(speciesCard).join('')}</div></div></div></section>`; }
   const megaFor = IDX.ents.filter(x => x.is_mega && x.stone === e.slug);
-  return `<section class="wrap page">${back}<div class="page-grid has-art"><div class="page-main"><h1>${esc(e.name)}</h1><div class="chips big">${e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div><p>${esc(e.raw.long_desc || e.raw.description || '')}</p>${megaFor.length ? `<h3>Mega Evolution</h3><div class="sgrid">${megaFor.map(speciesCard).join('')}</div>` : ''}</div>
-    <div class="page-art"><div class="artbox itembox">${e.sprite ? `<img src="${e.sprite}" alt="">` : ''}</div></div></div></section>`;
+  return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><h1>${esc(e.name)}</h1><div class="sphead"><div class="spinfo"><div class="chips big">${e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div>
+      <ul class="spmeta muted"><li><a href="${qlink('new:' + e.reg.toLowerCase())}" data-nav>since ${esc(e.reg)}</a></li></ul></div>
+      <div class="spart"><div class="artbox spbox">${e.sprite ? `<img src="${e.sprite}" alt="${esc(e.name)}">` : ''}</div></div></div>
+      <p>${esc(e.raw.long_desc || e.raw.description || '')}</p>${megaFor.length ? `<h3>Mega Evolution</h3><div class="sgrid">${megaFor.map(speciesCard).join('')}</div>` : ''}</div></div></section>`;
 }
 
 // ----- syntax guide -----
