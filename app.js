@@ -304,11 +304,10 @@ function sizeListCols() { if (!$('.list')) return; const apply = () => { for (co
   if (LIST_COLS) return apply();
   const m = document.createElement('div'); m.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap';
   const by = k => IDX.ents.filter(e => e.kind === k); const cats = [...new Set(by('move').map(e => e.cat))];
-  m.innerHTML = `<table class="list" style="width:auto"><tbody>
-    <tr>${by('species').map(e => `<td class="name sp">${nameCell(e)}</td>`).join('')}</tr>
-    <tr>${by('move').map(e => `<td class="name mv"><a>${esc(e.name)}</a></td>`).join('')}</tr>
-    <tr>${by('ability').map(e => `<td class="name ab"><a>${esc(e.name)}</a></td>`).join('')}</tr>
-    <tr>${IDX.types.map(t => `<td class="type">${typeChip(t)}</td>`).join('')}${cats.map(c => `<td class="cat">${catChip(c)}</td>`).join('')}</tr></tbody></table>`;
+  // one table per group: cells in the same column of one table share a width, which would cross-contaminate the groups
+  const tbl = cells => `<table class="list" style="width:auto"><tbody><tr>${cells}</tr></tbody></table>`;
+  m.innerHTML = tbl(by('species').map(e => `<td class="name sp">${nameCell(e)}</td>`).join('')) + tbl(by('move').map(e => `<td class="name mv"><a>${esc(e.name)}</a></td>`).join(''))
+    + tbl(by('ability').map(e => `<td class="name ab"><a>${esc(e.name)}</a></td>`).join('')) + tbl(IDX.types.map(t => `<td class="type">${typeChip(t)}</td>`).join('')) + tbl(cats.map(c => `<td class="cat">${catChip(c)}</td>`).join(''));
   document.body.appendChild(m);
   const wmax = sel => Math.ceil(Math.max(...[...m.querySelectorAll(sel)].map(td => td.getBoundingClientRect().width)));
   const chips = [...m.querySelectorAll('td.type .chip')].map(c => c.getBoundingClientRect().width).sort((a, b) => b - a);
