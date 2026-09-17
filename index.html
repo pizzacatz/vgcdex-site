@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
 <style>
 /* ---- GeorgiaPlayEvents brand primitives (docs/COLOR-SCHEME.md §8.3) ---- */
-:root{--r:2px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--on-dark:#fff;--on-light:#1b1b1b;--hdr-bg:var(--gpe-black);--hdr-line:var(--gpe-surface);--hdr-placeholder:#8d8580;--hdr-btn-line:#9a9391;--menu-divider:#3a3a3a;--menu-line:#5c5654;--foot-text:#cfc4ba;--foot-dim:#5c554f;--is:#6f8a5e;--not:#d9534f;--hero-btn-text:#241711;--hero-btn-hover:#ffc08d;--chip-ring:rgb(0 0 0/.15);--tok-x-bg:rgb(127 127 127/.18);--menu-shadow:rgb(0 0 0/.18);--bar-shadow:rgb(0 0 0/.08);--gpe-gold:#ffd180;--gpe-coral:#ff9e80;--gpe-peach:#ffb072;--gpe-burnt:#a85526;--gpe-burnt-hover:#8f4520;--gpe-black:#0d0d0d;--gpe-surface:#1a1a1a;--gpe-hover:#2a2a2a;--gpe-cream:#fff1df;--gpe-card:#fdf7ef;--gpe-ink:#2c211b;--gpe-paper:#f8efe5}
+:root{--r:2px;--btn-shadow:0 1px 1px 0 rgb(0 0 0/.06);--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--on-dark:#fff;--on-light:#1b1b1b;--hdr-bg:var(--gpe-black);--hdr-line:var(--gpe-surface);--hdr-placeholder:#8d8580;--hdr-btn-line:#9a9391;--menu-divider:#3a3a3a;--menu-line:#5c5654;--foot-text:#cfc4ba;--foot-dim:#5c554f;--is:#6f8a5e;--not:#d9534f;--hero-btn-text:#241711;--hero-btn-hover:#ffc08d;--chip-ring:rgb(0 0 0/.15);--tok-x-bg:rgb(127 127 127/.18);--menu-shadow:rgb(0 0 0/.18);--bar-shadow:rgb(0 0 0/.08);--gpe-gold:#ffd180;--gpe-coral:#ff9e80;--gpe-peach:#ffb072;--gpe-burnt:#a85526;--gpe-burnt-hover:#8f4520;--gpe-black:#0d0d0d;--gpe-surface:#1a1a1a;--gpe-hover:#2a2a2a;--gpe-cream:#fff1df;--gpe-card:#fdf7ef;--gpe-ink:#2c211b;--gpe-paper:#f8efe5}
 /* ---- semantic layer: light (default) ---- */
 :root{--page:var(--gpe-cream);--card:var(--gpe-card);--card-2:#f7e3cb;--line:#e8d3b8;--text:var(--gpe-ink);--muted:#7a6a58;--accent:var(--gpe-burnt);--accent-hover:var(--gpe-burnt-hover);--accent-contrast:#fff;--accent-soft:#ffe2ca;--focus:rgb(240 160 105/.38);--shadow:0 2px 12px rgb(90 60 30/.14);--err-bg:#fff0ec;--err-line:#d25345;--err-text:#a23a32;--warn-bg:#ffecd8;--warn-line:#d67642;--field:#fffdf8;--field-line:#c6aa90;--bar:#e8d3b8}
 :root[data-theme=dark]{--hdr-bg:var(--gpe-surface);--hdr-line:var(--gpe-hover);--page:var(--gpe-black);--card:var(--gpe-surface);--card-2:#232323;--line:#4a4647;--text:var(--gpe-paper);--muted:#cfc4ba;--accent:var(--gpe-peach);--accent-hover:#ffc08d;--accent-contrast:#241711;--accent-soft:#3f2c22;--focus:rgb(255 176 114/.42);--shadow:0 2px 12px rgb(0 0 0/.55);--err-bg:#3b1d1b;--err-line:#ff6e62;--err-text:#ffaea5;--warn-bg:#3d2a1d;--warn-line:#ffb072;--field:#151516;--field-line:#665b55;--bar:#2f2f33}
@@ -76,7 +76,7 @@ h1,h2,h3{font-family:Montserrat,Inter,system-ui,sans-serif;letter-spacing:-.01em
 .controls{background:var(--card);border-bottom:1px solid var(--line);position:static;z-index:4}
 .controls-in{display:flex;align-items:center;gap:16px;min-height:46px;flex-wrap:wrap;padding-block:6px}
 .count b{font-weight:700}.ctl{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:.85rem}.ctl label{color:var(--muted)}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}.seg a{padding:4px 10px;color:var(--text)}.seg a.on{background:var(--accent);color:var(--accent-contrast)}.seg a:hover{text-decoration:none}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--btn-shadow)}.seg a{padding:4px 10px;color:var(--text)}.seg a.on{background:var(--accent);color:var(--accent-contrast)}.seg a:hover{text-decoration:none}
 select{font:inherit;font-size:.85rem;padding:4px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--field);color:var(--text)}
 @media (max-width:700px){.controls{top:auto;position:static}}
 .group{padding:22px 20px 6px}
@@ -99,7 +99,7 @@ table.list .num{text-align:right;font-family:var(--mono)}.list th.num{text-align
 /* ---- detail pages ---- */
 .page{padding:20px 20px 40px}.back{margin:0 0 12px;font-size:.9rem}
 .page-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:28px}.page-grid.has-art{grid-template-columns:minmax(0,1fr) 300px}@media (max-width:760px){.page-grid.has-art{grid-template-columns:minmax(0,1fr)}.page-grid.has-art .page-art{order:-1}}
-.artbox{background:var(--card-2);border:1px solid var(--line);border-radius:var(--r);height:200px;display:grid;place-items:center;box-shadow:var(--shadow)}.artbox img{width:128px;height:128px;image-rendering:auto}
+.artbox{background:var(--card-2);border:1px solid var(--line);border-radius:var(--r);height:200px;display:grid;place-items:center}.artbox img{width:128px;height:128px;image-rendering:auto}
 .sphead{display:flex;align-items:stretch;gap:12px}.spart{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:12px}.spinfo{flex:none;width:var(--dual-w,auto);min-width:0;overflow-wrap:break-word}.spinfo .chips.big{margin-top:0}.page-main h1{overflow-wrap:break-word}@media (max-width:700px){.sphead{gap:0}.spart{padding:6px}}.spmeta{list-style:none;margin:0;padding:0;line-height:1.6}.artbox.spbox{flex:none;height:auto;width:fit-content;padding:4px;display:block}.artbox.spbox img{display:block;width:128px;height:128px}.artbox.movebox,.artbox.itembox{aspect-ratio:auto;padding:20px;display:block}.artbox.itembox{text-align:center;height:auto}.artbox.itembox img{width:160px;height:160px}
 .bigstat{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;font-size:.72rem;color:var(--muted)}.bigstat.inline{display:inline-grid;grid-template-columns:repeat(4,auto);gap:22px;margin:10px 0 14px;padding:8px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}.bigstat b{display:block;font-size:1.3rem;color:var(--text);font-family:var(--mono)}
 
@@ -154,7 +154,7 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 .props li{padding:2px 0}.tok-menu-row .kindlbl{margin-left:.35em}.tok-menu-row code{color:var(--accent);font-weight:600;margin-right:6px}.tok-menu-empty{padding:8px 12px;color:var(--muted);font-style:italic}
 .submit-bar{position:sticky;bottom:0;z-index:15;display:flex;flex-wrap:nowrap;align-items:center;gap:12px;margin:16px -20px 0;padding:10px 20px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -4px 14px var(--bar-shadow)}
 .submit-n{font:inherit;font-size:15px;font-weight:600;height:38px;padding:0 14px;border-radius:var(--r);border:1px solid var(--accent);background:var(--card);color:var(--accent);cursor:pointer;margin-left:auto;white-space:nowrap}.submit-n:hover{background:var(--accent);color:var(--accent-contrast)}.submit-n:disabled{opacity:.45;cursor:default;background:var(--card);color:var(--accent)}
-.reset-n{font:inherit;font-size:15px;height:38px;padding:0 12px;border-radius:var(--r);border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.reset-n{font:inherit;font-size:15px;height:38px;padding:0 12px;border-radius:var(--r);border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;box-shadow:var(--btn-shadow)}
 .qwrap{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px}.submit-bar>button{flex:none}.qcount{flex:none;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}.regtext{font-size:16px;padding:8px 0}
 .qpreview{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--accent);padding:4px 0}.qpreview:empty::before{content:'Fill in the form to build a search';color:var(--muted);font-style:italic;font-family:Inter,sans-serif}
 .icon-n{display:inline-flex;align-items:center;gap:6px}.icon-n svg{width:16px;height:16px;flex:none}.icon-n.ok{color:var(--accent);border-color:var(--accent)}
@@ -188,6 +188,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260917153207"></script>
+<script src="app.js?v=20260917154439"></script>
 </body>
 </html>
