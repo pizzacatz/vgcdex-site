@@ -664,7 +664,7 @@ function ensureDupRow(kind) { const fs = FS; if (kind === 'regs') { if (!fs.regs
   if (kind === 'matchups') { if (!fs.matchups.some(r => !r.type)) { fs.matchups.push({ rel: 'weak', type: '' }); $('#matchups-rows').insertAdjacentHTML('beforeend', matchRow(fs.matchups[fs.matchups.length - 1], fs.matchups.length - 1)); } return; }
   const rows = fs[kind]; if (rows.some(r => r.val === '')) return; const r = { stat: kind === 'stats' ? 'spe' : 'bp', op: '>=', val: '' }; rows.push(r); $('#' + kind + '-rows').insertAdjacentHTML('beforeend', dupRow(kind, r, rows.length - 1, kind === 'stats' ? STAT_OPTS : MNUM_OPTS)); }
 function updatePreview() { if (!FS) return; const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || ''; const go = $('#go'); if (go) go.disabled = !q; const c = $('#qcount'); if (c) { let txt = ''; if (q) { try { const n = search(IDX, q).results.length; txt = n === 1 ? '1 result' : n + ' results'; } catch (e) { txt = e instanceof QueryError ? (e.kind === 'syntax' ? 'syntax error' : 'scope error') : ''; } } c.textContent = txt; } }
-function submitForm() { readForm(); const q = buildQuery(FS); if (!q) return; nav(qlink(q) + (FS.view === 'list' ? '&view=list' : '')); }
+function submitForm() { readForm(); if (!flushTokens()) { updatePreview(); return; } readForm(); const q = buildQuery(FS); if (!q) return; nav(qlink(q) + (FS.view === 'list' ? '&view=list' : '')); }
 function addToken(key, raw) {
   const v = raw.trim(); if (!v) return false; let val = v;
   if (key === 'types') { const t = norm(v); if (!IDX.types.includes(t)) return false; val = t; }
@@ -678,12 +678,21 @@ function addToken(key, raw) {
   if (FS[key].some(x => x.v === val)) return true;
   FS[key].push({ v: val, neg: false }); return true;
 }
+// typed-but-uncommitted text in a picker: commit it like Enter does, or mark the field
+function flushInput(input) { if (!input || input.dataset.single) return true; const v = input.value.trim(); const wrap = input.closest('.tok-wrap');
+  const clear = () => { if (wrap) { wrap.classList.remove('bad'); wrap.querySelector('.tokerr')?.remove(); } };
+  if (!v) { clear(); return true; }
+  if (addToken(input.dataset.tkin, v)) { input.value = ''; clear(); rerenderTokens(input.dataset.tkin); return true; }
+  if (wrap) { wrap.classList.add('bad'); let msg = wrap.querySelector('.tokerr'); if (!msg) { msg = document.createElement('p'); msg.className = 'tokerr'; wrap.appendChild(msg); } msg.textContent = TOK_ERR[input.dataset.tkin] || 'Not recognized.'; }
+  return false; }
+const TOK_ERR = { moves: 'Not a move name or a valid move expression, e.g. t:rock cat:physical bp>=75.', abilities: 'Not an ability name, a regex like /weather/, or a valid ability expression.', types: 'Not a type.', props: 'Not a move property.', crit: 'Not one of the listed formes.', icats: 'Not an item category.' };
+function flushTokens() { let ok = true; for (const i of document.querySelectorAll('#adv .tok-in')) if (!flushInput(i)) ok = false; return ok; }
 function rerenderTokens(key) { const box = $(`[data-tk="${key}"]`); if (!box) return; box.closest('.tok-wrap').outerHTML = tokens(key); updatePreview(); }
 function bindForm() {
   const f = $('#adv'); if (!f) return; updatePreview();
   f.addEventListener('input', ev => { const t = ev.target; if (t.classList.contains('tok-in')) { openMenu(t); if (t.dataset.single) readForm(); return; } readForm(); const row = t.closest('[data-row]'); if (row && t.dataset.f === 'val' && t.value !== '') ensureDupRow(row.dataset.row); });
   f.addEventListener('focusin', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in')) openMenu(t); });
-  f.addEventListener('focusout', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in') && !MENU_HOLD) closeMenu(); });
+  f.addEventListener('focusout', ev => { const t = ev.target; if (t.classList && t.classList.contains('tok-in') && !MENU_HOLD) { closeMenu(); flushInput(t); } });
   f.addEventListener('change', ev => { if (ev.target.classList.contains('tok-in')) return; readForm(); const row = ev.target.closest('[data-row]'); if (row && (ev.target.dataset.f === 'val' || ev.target.dataset.f === 'cat' || ev.target.dataset.f === 'reg')) ensureDupRow(row.dataset.row); });
   f.addEventListener('focusout', ev => { const row = ev.target.closest && ev.target.closest('[data-row]'); if (row && ev.target.dataset.f === 'val') { readForm(); ensureDupRow(row.dataset.row); } });
   f.addEventListener('keydown', ev => { const t = ev.target; if (!(t.classList && t.classList.contains('tok-in'))) return;
@@ -704,7 +713,7 @@ function bindForm() {
     if (!ev.target.closest('.pillsel')) f.querySelectorAll('.pill-menu').forEach(m => m.hidden = true);
   });
   f.addEventListener('submit', ev => { ev.preventDefault(); submitForm(); });
-  $('#copylink').addEventListener('click', () => { readForm(); const q = buildQuery(FS); if (!q) return; const url = location.origin + location.pathname + qlink(q) + (FS.view === 'list' ? '&view=list' : ''); const b = $('#copylink'); const lbl = b.querySelector('.lbl'); const done = () => { lbl.textContent = 'Copied'; b.classList.add('ok'); setTimeout(() => { lbl.textContent = 'Copy link'; b.classList.remove('ok'); }, 1500); }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => { prompt('Copy this link', url); }); else prompt('Copy this link', url); });
+  $('#copylink').addEventListener('click', () => { readForm(); if (!flushTokens()) { updatePreview(); return; } readForm(); const q = buildQuery(FS); if (!q) return; const url = location.origin + location.pathname + qlink(q) + (FS.view === 'list' ? '&view=list' : ''); const b = $('#copylink'); const lbl = b.querySelector('.lbl'); const done = () => { lbl.textContent = 'Copied'; b.classList.add('ok'); setTimeout(() => { lbl.textContent = 'Copy link'; b.classList.remove('ok'); }, 1500); }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => { prompt('Copy this link', url); }); else prompt('Copy this link', url); });
   f.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); submitForm(); } });
   $('#reset').addEventListener('click', () => { const tab = FS.tab; FS = emptyForm(); FS.tab = tab; history.replaceState('app', '', '?adv=1'); render(); });
   document.querySelectorAll('.tabs [data-tab]').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); readForm(); FS.tab = a.dataset.tab; FS.also = []; render(); }));

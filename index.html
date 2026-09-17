@@ -140,7 +140,7 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:24px;bac
 .asc input[type=checkbox]:hover,.asc input[type=checkbox]:focus{box-shadow:0 0 4px var(--field-line);outline:none}.asc input[type=checkbox]:checked::before{content:"✓";font-weight:700;line-height:1}
 .asc input[type=radio]{appearance:none;-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--field);border:1px solid var(--field-line);margin:0 8px 0 0;display:flex;justify-content:center;align-items:center;cursor:pointer}.asc input[type=radio]:checked::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--accent)}.asc input[type=radio]:hover,.asc input[type=radio]:focus{box-shadow:0 0 4px var(--field-line);outline:none}
 .tok-wrap{position:relative;width:560px;max-width:100%}.tok-wrap.single .form-input{width:100%;max-width:none;min-width:0}
-.tokens{display:flex;flex-flow:column nowrap;align-items:stretch;gap:4px;width:100%;min-height:38px;padding:4px 4px;background:var(--field);border:1px solid var(--field-line);border-radius:var(--r);cursor:text}
+.tok-wrap.bad .tokens{border-color:var(--err-line)}.tokerr{display:block;width:100%;color:var(--err-text);font-size:12px;margin:4px 0 0}.tokens{display:flex;flex-flow:column nowrap;align-items:stretch;gap:4px;width:100%;min-height:38px;padding:4px 4px;background:var(--field);border:1px solid var(--field-line);border-radius:var(--r);cursor:text}
 .tokens:focus-within{outline:2px solid var(--accent);outline-offset:-1px;box-shadow:none}
 .tok{display:flex;align-items:center;height:24px;font-size:15px;line-height:1;color:var(--text);gap:4px}
 .tok-x{font:inherit;border:0;border-radius:var(--r);background:var(--tok-x-bg);color:var(--muted);cursor:pointer;width:24px;height:22px;font-size:15px;line-height:1;flex:none}.tok-x:hover{color:var(--err-text)}
@@ -189,6 +189,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:24px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260917172905"></script>
+<script src="app.js?v=20260917181506"></script>
 </body>
 </html>
