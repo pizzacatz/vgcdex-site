@@ -291,10 +291,10 @@ function header(st) {
   const compact = !isHome(st);
   return `<header class="top"><div class="wrap top-in">
     <a class="brand" href="./" data-nav><span class="icon">${ICON}</span><span class="word">VGC Dex</span></a>
-    ${compact ? `<form class="topsearch" id="form"><input id="q" type="search" value="${esc(st.q)}" placeholder="Search Pokémon, moves, abilities, items…" spellcheck="false" autocomplete="off" autocapitalize="off"><button type="submit" aria-label="Search">⌕</button><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>` : ''}
+    ${compact ? `<form class="topsearch" id="form"><input id="q" type="search" value="${esc(st.q)}" placeholder="Search Pokémon, moves, abilities, items…" spellcheck="false" autocomplete="off" autocapitalize="off"><button type="submit" aria-label="Search">${NAV_ICON('M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4')}</button><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>` : ''}
     <button type="button" class="menubtn" id="menubtn" aria-label="Menu" aria-expanded="false" aria-controls="topmenu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <nav class="topmenu" id="topmenu" hidden>${NAV_LINKS('random3')}<button type="button" id="theme2">${NAV_ICON('M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 3v18 M12 7h3.5 M12 11h5 M12 15h4.5')}<span>Toggle Theme</span></button></nav>
-    <nav class="topnav"><a href="?guide=1" data-nav>Syntax Guide</a><a href="#" id="random">Random Mon</a><span class="reg">${esc(IDX.meta.regulation.regulation)}</span><button id="theme" title="Toggle Theme" aria-label="Toggle theme">◐</button></nav>
+    <nav class="topnav"><a href="?guide=1" data-nav>Syntax</a><a href="#" id="random">Random</a><span class="reg">${esc(IDX.meta.regulation.regulation)}</span><button id="theme" title="Toggle Theme" aria-label="Toggle theme">${NAV_ICON('M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 3v18 M12 7h3.5 M12 11h5 M12 15h4.5')}</button></nav>
   </div></header>`;
 }
 function footer() { const m = IDX.meta; return `<footer class="foot"><div class="wrap foot-col">
