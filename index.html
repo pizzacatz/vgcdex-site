@@ -110,7 +110,7 @@ table.stats{border-collapse:collapse;font-size:.9rem;width:100%;max-width:520px}
 table.stats .bar{width:auto}table.stats .bar i{display:block;height:10px;border-radius:var(--r);background:linear-gradient(90deg,var(--gpe-gold),var(--gpe-coral));min-width:2px}table.stats .tot th,table.stats .tot td{border-top:1px solid var(--line);padding-top:4px}
 dl.eff{display:grid;grid-template-columns:80px 1fr;gap:4px 8px;margin:0;align-items:center}dl.eff dt{font-weight:600;font-size:.85rem}dl.eff dd{margin:0}dl.eff a:hover{text-decoration:none}dl.eff sup{font-size:.6rem;color:var(--muted);margin-left:1px}
 .movechips{display:flex;flex-wrap:wrap;gap:4px}.mc{font-size:.8rem;font-weight:600;padding:4px 8px;border-radius:var(--r);color:var(--on-dark);border:1px solid var(--chip-ring)}.mc:hover{text-decoration:none;filter:brightness(1.12)}
-.doc p{max-width:760px}.doc h2{margin-top:26px}table.guide{border-collapse:collapse;width:100%;max-width:820px;font-size:.9rem}table.guide td{padding:4px 8px;border-bottom:1px solid var(--line);vertical-align:top}table.guide td:first-child{white-space:nowrap;color:var(--accent);font-weight:600}@media (max-width:700px){table.guide td:first-child{white-space:normal;word-break:break-word;min-width:6em}}
+.doc p{max-width:760px}.doc h2{margin-top:26px}table.guide{border-collapse:collapse;width:100%;max-width:820px;font-size:.9rem;table-layout:fixed}table.guide td{padding:4px 8px;border-bottom:1px solid var(--line);vertical-align:top}table.guide td:first-child{white-space:nowrap;color:var(--accent);font-weight:600;width:var(--guide-w,40%)}@media (max-width:700px){table.guide td:first-child{white-space:normal;word-break:break-word;min-width:6em;width:40%}}
 
 /* ---- advanced search form (home) — Scryfall /advanced measurements on our tokens ---- */
 .adv{padding:4px 16px 0}
@@ -189,6 +189,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:24px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260917171924"></script>
+<script src="app.js?v=20260917172905"></script>
 </body>
 </html>

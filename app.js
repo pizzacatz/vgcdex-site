@@ -285,8 +285,12 @@ function home() { const reg = IDX.currentReg;
   <nav class="homelinks">${NAV_LINKS('random2')}</nav>
   <p class="homenew"><a href="${qlink('new:' + reg.toLowerCase())}" data-nav><span class="newpill">New</span>Regulation ${esc(reg)}</a></p></div></section>`; }
 // the home block's middle sits a third of the way down the screen; its height depends on how the tagline wraps
+// syntax guide: every table's code column is as wide as the widest code entry on the page
+function sizeGuide() { const cells = [...document.querySelectorAll('table.guide td:first-child')]; if (!cells.length) return;
+  const measure = () => { const w = Math.max(...cells.map(td => { const r = document.createRange(); r.selectNodeContents(td); return r.getBoundingClientRect().width; })); document.documentElement.style.setProperty('--guide-w', Math.ceil(w + 16) + 'px'); };
+  measure(); if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(measure); }
 function placeHome() { const h = $('.home-in'); if (h) h.parentNode.style.setProperty('--hh', h.offsetHeight + 'px'); }
-window.addEventListener('resize', placeHome); if (document.fonts) document.fonts.ready.then(placeHome);
+window.addEventListener('resize', placeHome); window.addEventListener('resize', sizeGuide); if (document.fonts) document.fonts.ready.then(placeHome);
 function header(st) {
   const compact = !isHome(st);
   return `<header class="top"><div class="wrap top-in">
@@ -711,7 +715,7 @@ function rerenderRows(k, keepFocus) { const box = $('#' + k + '-rows'); if (!box
 function render() {
   const st = state();
   let body; if (st.detail) body = detail(st.detail); else if (st.guide) body = guide(); else if (st.q && !st.adv) body = results(st); else if (isHome(st)) body = home(); else { if (st.adv && st.q) { if (!FS || FS.src !== st.q) { FS = queryToForm(st.q); FS.src = st.q; FS.view = st.view; } } else if (!FS || FS.src) { FS = emptyForm(); } body = advForm(); }
-  app.innerHTML = (isHome(st) ? '' : header(st)) + `<main>${body}</main>` + footer(); sizeListCols(); placeHome();
+  app.innerHTML = (isHome(st) ? '' : header(st)) + `<main>${body}</main>` + footer(); sizeListCols(); placeHome(); sizeGuide();
   if (location.hash) { const tgt = document.getElementById(location.hash.slice(1)); if (tgt) setTimeout(() => tgt.scrollIntoView({ block: 'start' }), 0); }
   const SITE = 'VGC Dex Pokemon Champions Search'; document.title = st.detail ? `${IDX.ents.find(x => x.kind === st.detail.kind && x.slug === st.detail.slug)?.name || SITE} · VGC Dex` : st.q ? `${st.q} · VGC Dex` : SITE;
   bindForm();
