@@ -300,20 +300,24 @@ function speciesTable(rows) { return `<div class="tablewrap"><table class="list 
 // List columns (owner rule): Name is exactly as wide as the longest Pokémon name in the data, Type as wide as the widest
 // possible pair of type chips, stats shrink to content. Measured once per font load with a hidden table, set as CSS vars.
 let LIST_COLS = null;
-function sizeListCols() { if (!$('.list.species')) return; const apply = () => { document.documentElement.style.setProperty('--name-w', LIST_COLS.name + 'px'); document.documentElement.style.setProperty('--type-w', LIST_COLS.type + 'px'); };
+function sizeListCols() { if (!$('.list')) return; const apply = () => { for (const [k, v] of Object.entries(LIST_COLS)) document.documentElement.style.setProperty('--' + k, v + 'px'); };
   if (LIST_COLS) return apply();
   const m = document.createElement('div'); m.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap';
-  const sp = IDX.ents.filter(e => e.kind === 'species');
-  m.innerHTML = `<table class="list species" style="width:auto"><tbody><tr>${sp.map(e => `<td class="name">${nameCell(e)}</td>`).join('')}</tr><tr>${IDX.types.map(t => `<td class="type">${typeChip(t)}</td>`).join('')}</tr></tbody></table>`;
+  const by = k => IDX.ents.filter(e => e.kind === k); const cats = [...new Set(by('move').map(e => e.cat))];
+  m.innerHTML = `<table class="list" style="width:auto"><tbody>
+    <tr>${by('species').map(e => `<td class="name sp">${nameCell(e)}</td>`).join('')}</tr>
+    <tr>${by('move').map(e => `<td class="name mv"><a>${esc(e.name)}</a></td>`).join('')}</tr>
+    <tr>${by('ability').map(e => `<td class="name ab"><a>${esc(e.name)}</a></td>`).join('')}</tr>
+    <tr>${IDX.types.map(t => `<td class="type">${typeChip(t)}</td>`).join('')}${cats.map(c => `<td class="cat">${catChip(c)}</td>`).join('')}</tr></tbody></table>`;
   document.body.appendChild(m);
-  const nameW = Math.max(...[...m.querySelectorAll('td.name')].map(td => td.getBoundingClientRect().width));
+  const wmax = sel => Math.ceil(Math.max(...[...m.querySelectorAll(sel)].map(td => td.getBoundingClientRect().width)));
   const chips = [...m.querySelectorAll('td.type .chip')].map(c => c.getBoundingClientRect().width).sort((a, b) => b - a);
   const cellPad = m.querySelector('td.type').getBoundingClientRect().width - m.querySelector('td.type .chip').getBoundingClientRect().width;
-  const typeW = chips[0] + chips[1] + 4 + cellPad; // two widest chips, the space between them, cell padding
-  m.remove(); LIST_COLS = { name: Math.ceil(nameW), type: Math.ceil(typeW) }; apply();
+  LIST_COLS = { 'name-w': wmax('td.sp'), 'mname-w': wmax('td.mv'), 'aname-w': wmax('td.ab'), 'type-w': Math.ceil(chips[0] + chips[1] + 4 + cellPad), 'type1-w': wmax('td.type'), 'cat-w': wmax('td.cat') };
+  m.remove(); apply();
   if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { LIST_COLS = null; sizeListCols(); }); }
-function moveTable(rows) { return `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Type</th><th>Cat</th><th class="num">BP</th><th class="num">Acc</th><th class="num">PP</th><th class="num">Prio</th><th>Effect</th>${SUBS.length ? '<th>Learned by</th>' : ''}</tr></thead><tbody>${rows.map(e => `<tr><td><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td>${typeChip(e.type)}</td><td>${catChip(e.cat)}</td><td class="num">${e.bp || '—'}</td><td class="num">${e.acc ?? '—'}</td><td class="num">${e.pp}</td><td class="num">${e.prio > 0 ? '+' : ''}${e.prio}</td><td class="muted">${esc(e.raw.short_desc || '')}</td>${SUBS.length ? `<td>${matchLine(e)}</td>` : ''}</tr>`).join('')}</tbody></table></div>`; }
-function abilityTable(rows) { return `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Effect</th><th class="num">Pokémon</th></tr></thead><tbody>${rows.map(e => `<tr><td><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td class="muted">${esc(e.raw.short_desc || '')}</td><td class="num">${IDX.ents.filter(x => x.kind === 'species' && x.abilitySlugs.includes(e.slug)).length}</td></tr>`).join('')}</tbody></table></div>`; }
+function moveTable(rows) { return `<div class="tablewrap"><table class="list moves"><thead><tr><th class="name">Name</th><th class="type">Type</th><th class="cat">Cat</th><th class="num">BP</th><th class="num">Acc</th><th class="num">PP</th><th class="num">Prio</th><th>Effect</th>${SUBS.length ? '<th>Learned by</th>' : ''}</tr></thead><tbody>${rows.map(e => `<tr><td class="name"><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td class="type">${typeChip(e.type)}</td><td class="cat">${catChip(e.cat)}</td><td class="num">${e.bp || '—'}</td><td class="num">${e.acc ?? '—'}</td><td class="num">${e.pp}</td><td class="num">${e.prio > 0 ? '+' : ''}${e.prio}</td><td class="muted">${esc(e.raw.short_desc || '')}</td>${SUBS.length ? `<td>${matchLine(e)}</td>` : ''}</tr>`).join('')}</tbody></table></div>`; }
+function abilityTable(rows) { return `<div class="tablewrap"><table class="list abilities"><thead><tr><th class="name">Name</th><th>Effect</th><th class="num">Pokémon</th></tr></thead><tbody>${rows.map(e => `<tr><td class="name"><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td class="muted">${esc(e.raw.short_desc || '')}</td><td class="num">${IDX.ents.filter(x => x.kind === 'species' && x.abilitySlugs.includes(e.slug)).length}</td></tr>`).join('')}</tbody></table></div>`; }
 function itemCard(e) { return `<a class="card item" href="${plink(e)}" data-nav><div class="art">${e.sprite ? `<img src="${e.sprite}" alt="" loading="lazy">` : ''}</div><div class="card-body"><div class="card-name">${esc(e.name)}</div><div class="chips">${e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div><div class="muted small">${esc(e.raw.short_desc || e.raw.description || '')}</div></div></a>`; }
 const SORTS = [['', 'Relevance'], ['name', 'Name'], ['dex', 'Dex #'], ['hp', 'HP'], ['atk', 'Attack'], ['def', 'Defense'], ['spa', 'Special Attack'], ['spd', 'Special Defense'], ['spe', 'Speed'], ['total', 'Total'], ['bp', 'Base Power'], ['acc', 'Accuracy'], ['pp', 'PP'], ['prio', 'Priority']];
 function withoutKind(q) { let ast; try { ast = parse(q); } catch (e) { return null; } if (!ast) return null; const items = ast.type === 'and' ? ast.items : [ast]; const isKind = it => (it.type === 'term' && F[it.field] && F[it.field].name === 'kind') || (it.type === 'or' && it.items.every(x => x.type === 'term' && F[x.field] && F[x.field].name === 'kind')); if (!items.some(isKind)) return null; const rest = items.filter(it => !isKind(it)); return rest.length ? rest.map(astText).join(' ') : null; }
@@ -331,10 +335,10 @@ function results(st) {
   if (!r.results.length) return controls + `<section class="wrap"><div class="notice zero"><b>No results.</b> The query parsed fine and was searched across ${scopeTxt}.<ul><li>Bare words match <b>names</b> only. Use <code>o:</code> for description text.</li><li>Stats are the in-game values, not base stats.</li><li><code>m:</code> wants a move name, e.g. <code>m:"iron head"</code>.</li></ul><p><a href="${qlink(q).replace('?q=', '?adv=1&q=')}" data-nav>Edit in advanced search</a>${withoutKind(q) ? ` · <a href="${qlink(withoutKind(q))}" data-nav>Search all kinds for these terms</a>` : ''}</p></div></section>`;
   const groups = {}; for (const e of r.results) (groups[e.kind] ||= []).push(e);
   let body = '';
-  for (const k of KINDS) { const rows = groups[k]; if (!rows) continue; const cap = rows.slice(0, 300);
+  for (const k of KINDS) { const rows = groups[k]; if (!rows) continue; const cap = rows;
     let inner; if (k === 'species') inner = st.view === 'list' ? speciesTable(cap) : `<div class="sgrid">${cap.map(speciesCard).join('')}</div>`;
     else if (k === 'move') inner = moveTable(cap); else if (k === 'ability') inner = abilityTable(cap); else inner = `<div class="grid items">${cap.map(itemCard).join('')}</div>`;
-    body += `<section class="wrap group"><h2>${KIND_LABEL[k]} <span class="muted">${rows.length}</span></h2>${inner}${rows.length > 300 ? `<p class="muted">Showing 300 of ${rows.length}. Narrow the query.</p>` : ''}</section>`; }
+    body += `<section class="wrap group"><h2>${KIND_LABEL[k]} <span class="muted">${rows.length}</span></h2>${inner}</section>`; }
   return controls + body;
 }
 
