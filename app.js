@@ -374,7 +374,7 @@ function detail(d) {
     SUBS = []; SORT = { order: so, dir: sd, link: (k, d) => `${plink(e)}&sort=${k}${d ? '&dir=' + d : ''}#learnset` };
     return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><h1>${esc(e.name)}${e.is_mega ? ' <span class="badge">Mega</span>' : ''}</h1><div class="sphead"><div class="spinfo"><div class="chips big">${e.types.map(typeChip).join('')}</div>
       <ul class="spmeta muted"><li>#${e.dex ?? '—'}</li><li>${e.kg} kg</li><li><a href="${qlink('new:' + e.reg.toLowerCase())}" data-nav>since ${esc(e.reg)}</a></li>${base ? `<li>Mega of <a href="${plink(base)}" data-nav>${esc(base.name)}</a></li>` : ''}${e.stone ? `<li>holds <b>${esc(IDX.ents.find(x => x.kind === 'item' && x.slug === e.stone)?.name || e.stone)}</b></li>` : ''}</ul></div>
-      <div class="artbox spbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div></div>
+      <div class="spart"><div class="artbox spbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div></div></div>
       <h3>Abilities</h3><ul class="plain">${e.abilitySlugs.map((s, i) => { const a = IDX.ents.find(x => x.kind === 'ability' && x.slug === s); return `<li><a href="${a ? plink(a) : '#'}" data-nav><b>${esc(e.abilities[i])}</b></a>${e.raw.abilities && e.raw.abilities[i] && e.raw.abilities[i].is_hidden ? ' <span class="badge">Hidden</span>' : ''} <span class="muted">${esc(a ? a.raw.short_desc || '' : '')}</span></li>`; }).join('')}</ul>
       <h3>Stats</h3>${statTable(e)}<h3>Defensive matchups</h3>${effChips(e)}
       ${megas.length ? `<h3>Mega Evolutions</h3><div class="sgrid">${megas.map(speciesCard).join('')}</div>` : ''}
