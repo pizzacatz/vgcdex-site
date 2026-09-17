@@ -274,8 +274,15 @@ function nav(qs, replace) { history[replace ? 'replaceState' : 'pushState'](null
 function setParam(k, v) { const p = new URLSearchParams(location.search); if (v == null || v === '') p.delete(k); else p.set(k, v); return '?' + p.toString(); }
 
 // ----- shell -----
+const isHome = st => !st.detail && !st.guide && !st.q && !st.adv;
+const ALL_ENTRIES = 'kind:species or kind:move or kind:ability or kind:item';
+function home() { const reg = IDX.currentReg;
+  return `<section class="wrap home"><h1 class="tagline"><b>VGC Dex</b> is a powerful <b>Pokémon Champions</b> search</h1>
+  <form class="homesearch" id="form"><span class="hicon">${ICON}</span><input id="q" type="search" placeholder="${matchMedia('(max-width:560px)').matches ? 'Search Pokémon, moves, items…' : 'Search for Pokémon, moves, abilities, items…'}" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Search"><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>
+  <nav class="homelinks"><a href="?adv=1" data-nav>Advanced Search</a><a href="?guide=1" data-nav>Syntax Guide</a><a href="${qlink(ALL_ENTRIES)}" data-nav>All Entries</a><a href="#" id="random2">Random Mon</a></nav>
+  <p class="homenew"><a href="${qlink('new:' + reg.toLowerCase())}" data-nav><span class="newpill">New</span>Regulation ${esc(reg)}</a></p></section>`; }
 function header(st) {
-  const compact = true;
+  const compact = !isHome(st);
   return `<header class="top"><div class="wrap top-in">
     <a class="brand" href="./" data-nav><span class="icon">${ICON}</span><span class="word">VGC Dex</span></a>
     ${compact ? `<form class="topsearch" id="form"><input id="q" type="search" value="${esc(st.q)}" placeholder='Search Pokémon, moves, abilities, items…' spellcheck="false" autocomplete="off" autocapitalize="off"><button type="submit" aria-label="Search">⌕</button><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>` : ''}
@@ -687,7 +694,7 @@ function bindForm() {
   f.addEventListener('submit', ev => { ev.preventDefault(); submitForm(); });
   $('#copylink').addEventListener('click', () => { readForm(); const q = buildQuery(FS); if (!q) return; const url = location.origin + location.pathname + qlink(q) + (FS.view === 'list' ? '&view=list' : ''); const b = $('#copylink'); const lbl = b.querySelector('.lbl'); const done = () => { lbl.textContent = 'Copied'; b.classList.add('ok'); setTimeout(() => { lbl.textContent = 'Copy link'; b.classList.remove('ok'); }, 1500); }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => { prompt('Copy this link', url); }); else prompt('Copy this link', url); });
   f.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); submitForm(); } });
-  $('#reset').addEventListener('click', () => { const tab = FS.tab; FS = emptyForm(); FS.tab = tab; history.replaceState('app', '', location.pathname); render(); });
+  $('#reset').addEventListener('click', () => { const tab = FS.tab; FS = emptyForm(); FS.tab = tab; history.replaceState('app', '', '?adv=1'); render(); });
   document.querySelectorAll('.tabs [data-tab]').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); readForm(); FS.tab = a.dataset.tab; FS.also = []; render(); }));
 }
 function rerenderRows(k, keepFocus) { const box = $('#' + k + '-rows'); if (!box) return; const active = document.activeElement; const idx = active && active.closest ? active.closest('[data-row]')?.dataset.i : null; const fld = active && active.dataset ? active.dataset.f : null; box.innerHTML = k === 'matchups' ? FS[k].map(matchRow).join('') : k === 'regs' ? FS[k].map(regRow).join('') : FS[k].map((r, i) => dupRow(k, r, i, k === 'stats' ? STAT_OPTS : MNUM_OPTS)).join(''); if (keepFocus && idx != null && fld) { const el = box.querySelector(`[data-row="${k}"][data-i="${idx}"] [data-f="${fld}"]`); if (el) { el.focus(); if (el.type === 'number' || el.type === 'text') { const L = el.value.length; try { el.setSelectionRange(L, L); } catch (e) {} } } } updatePreview(); }
@@ -695,7 +702,7 @@ function rerenderRows(k, keepFocus) { const box = $('#' + k + '-rows'); if (!box
 // ----- render + events -----
 function render() {
   const st = state();
-  let body; if (st.detail) body = detail(st.detail); else if (st.guide) body = guide(); else if (st.q && !st.adv) body = results(st); else { if (st.adv && st.q) { if (!FS || FS.src !== st.q) { FS = queryToForm(st.q); FS.src = st.q; FS.view = st.view; } } else if (!FS || FS.src) { FS = emptyForm(); } body = advForm(); }
+  let body; if (st.detail) body = detail(st.detail); else if (st.guide) body = guide(); else if (st.q && !st.adv) body = results(st); else if (isHome(st)) body = home(); else { if (st.adv && st.q) { if (!FS || FS.src !== st.q) { FS = queryToForm(st.q); FS.src = st.q; FS.view = st.view; } } else if (!FS || FS.src) { FS = emptyForm(); } body = advForm(); }
   app.innerHTML = header(st) + `<main>${body}</main>` + footer(); sizeListCols();
   if (location.hash) { const tgt = document.getElementById(location.hash.slice(1)); if (tgt) setTimeout(() => tgt.scrollIntoView({ block: 'start' }), 0); }
   const SITE = 'VGC Dex Pokemon Champions Search'; document.title = st.detail ? `${IDX.ents.find(x => x.kind === st.detail.kind && x.slug === st.detail.slug)?.name || SITE} · VGC Dex` : st.q ? `${st.q} · VGC Dex` : SITE;
