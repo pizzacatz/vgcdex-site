@@ -277,7 +277,7 @@ function setParam(k, v) { const p = new URLSearchParams(location.search); if (v 
 const isHome = st => !st.detail && !st.guide && !st.q && !st.adv;
 const ALL_ENTRIES = 'kind:species or kind:move or kind:ability or kind:item';
 function home() { const reg = IDX.currentReg;
-  return `<section class="wrap home"><h1 class="tagline"><b>VGC Dex</b> is a powerful <b>Pokémon Champions</b> search</h1>
+  return `<section class="wrap home"><h1 class="tagline"><b>VGC Dex</b> is a powerful <br class="tlbr"><span class="tl2"><b>Pokémon Champions</b> search</span></h1>
   <form class="homesearch" id="form"><span class="hicon">${ICON}</span><input id="q" type="search" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Search"><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>
   <nav class="homelinks"><a href="?adv=1" data-nav>Advanced Search</a><a href="?guide=1" data-nav>Syntax Guide</a><a href="${qlink(ALL_ENTRIES)}" data-nav>All Entries</a><a href="#" id="random2">Random Mon</a></nav>
   <p class="homenew"><a href="${qlink('new:' + reg.toLowerCase())}" data-nav><span class="newpill">New</span>Regulation ${esc(reg)}</a></p></section>`; }
