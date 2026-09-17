@@ -293,7 +293,7 @@ function header(st) {
     <a class="brand" href="./" data-nav><span class="icon">${ICON}</span><span class="word">VGC Dex</span></a>
     ${compact ? `<form class="topsearch" id="form"><input id="q" type="search" value="${esc(st.q)}" placeholder="${matchMedia('(max-width:700px)').matches ? 'Search Pokémon, moves…' : 'Search Pokémon, moves, abilities, items…'}" spellcheck="false" autocomplete="off" autocapitalize="off"><button type="submit" aria-label="Search">⌕</button><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>` : ''}
     <button type="button" class="menubtn" id="menubtn" aria-label="Menu" aria-expanded="false" aria-controls="topmenu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-    <nav class="topmenu" id="topmenu" hidden>${NAV_LINKS('random3')}</nav>
+    <nav class="topmenu" id="topmenu" hidden>${NAV_LINKS('random3')}<button type="button" id="theme2">${NAV_ICON('M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 3v18 M12 7h3.5 M12 11h5 M12 15h4.5')}<span>Toggle Theme</span></button></nav>
     <nav class="topnav"><a href="?guide=1" data-nav>Syntax</a><a href="#" id="random">Random</a><span class="reg">${esc(IDX.meta.regulation.regulation)}</span><button id="theme" title="Toggle theme" aria-label="Toggle theme">◐</button></nav>
   </div></header>`;
 }
@@ -724,7 +724,7 @@ function render() {
   const mb = $('#menubtn'); if (mb) mb.addEventListener('click', () => { const m = $('#topmenu'); m.hidden = !m.hidden; mb.setAttribute('aria-expanded', String(!m.hidden)); });
   for (const id of ['random', 'random2', 'random3']) { const el = $('#' + id); if (el) el.addEventListener('click', ev => { ev.preventDefault(); const sp = IDX.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); }
   const back = $('#back'); if (back) back.addEventListener('click', ev => { ev.preventDefault(); if (history.length > 1 && document.referrer !== '' || history.state === 'app') history.back(); else nav(''); });
-  const th = $('#theme'); if (th) th.addEventListener('click', () => { const cur = document.documentElement.dataset.theme || 'light'; const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('vgcdex-theme', nx); } catch (e) {} });
+  for (const id of ['theme', 'theme2']) { const th = $('#' + id); if (th) th.addEventListener('click', () => { const cur = document.documentElement.dataset.theme || 'light'; const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('vgcdex-theme', nx); } catch (e) {} }); }
 }
 document.addEventListener('click', ev => { const a = ev.target.closest('a[data-nav]'); if (!a) return; const href = a.getAttribute('href'); if (!href || href.startsWith('#')) return; ev.preventDefault(); history.pushState('app', '', href === './' ? location.pathname : href); render(); if (!href.includes('#')) scrollTop0(); });
 window.addEventListener('popstate', render);
