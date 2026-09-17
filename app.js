@@ -325,7 +325,12 @@ function results(st) {
 // ----- detail pages -----
 function effChips(e) { const w = IDX.types.filter(t => e.eff[t] >= 2), rs = IDX.types.filter(t => e.eff[t] > 0 && e.eff[t] < 1), im = IDX.types.filter(t => e.eff[t] === 0);
   const f = (ts, mark) => ts.map(t => `<a href="${qlink(mark + ':' + t)}" data-nav>${typeChip(t)}${e.eff[t] === 4 ? '<sup>×4</sup>' : e.eff[t] === 0.25 ? '<sup>×¼</sup>' : ''}</a>`).join(' ') || '<span class="muted">—</span>';
-  return `<dl class="eff"><dt>Weak</dt><dd>${f(w, 'weak')}</dd><dt>Resists</dt><dd>${f(rs, 'resists')}</dd><dt>Immune</dt><dd>${f(im, 'immune')}</dd></dl><p class="muted small">Type chart only; abilities such as Levitate are not applied.</p>`; }
+  return `<dl class="eff"><dt>Weak</dt><dd>${f(w, 'weak')}</dd><dt>Resists</dt><dd>${f(rs, 'resists')}</dd><dt>Immune</dt><dd>${f(im, 'immune')}</dd></dl>${abilityEffLines(e)}`; }
+// Per-ability changes to the chart (D-58): one line per ability that modifies an incoming type, linking to the ability-aware search.
+const multLabel = x => x === 0 ? 'immune' : x === 0.25 ? '×¼' : x === 0.5 ? '×½' : Number.isInteger(x) ? '×' + x : '×' + String(x).replace(/^0/, '');
+const effBucket = x => x === 0 ? 'immune' : x >= 4 ? 'xweak' : x >= 2 ? 'weak' : x <= 0.25 ? 'xresists' : x < 1 ? 'resists' : null;
+function abilityEffLines(e) { const lines = []; for (const sl of e.abilitySlugs) { const m = IDX.abilityTypeMod[sl]; if (!m) continue; const ab = IDX.abilityBySlug[sl]; const parts = Object.keys(m).filter(t => IDX.types.includes(t) && e.eff[t] > 0).map(t => { const x = e.eff[t] * m[t]; const b = effBucket(x); const chip = typeChip(t); return `${b ? `<a href="${qlink(b + ':' + t + ' matchups:abilities')}" data-nav>${chip}</a>` : chip} <span class="muted">${multLabel(x)} (chart ${multLabel(e.eff[t])})</span>`; }); if (parts.length) lines.push(`<p class="abeff"><b>With ${esc(ab ? ab.name : sl)}:</b> ${parts.join(' · ')}</p>`); }
+  return lines.length ? lines.join('') : '<p class="muted small">Type chart. None of its abilities changes a matchup.</p>'; }
 function statTable(e) { const max = 250; return `<table class="stats"><tbody>${STATS.map(k => `<tr><th>${STAT_LABEL[k]}</th><td class="num">${e.ps[k]}</td><td class="bar"><i style="width:${Math.min(100, (e.ps[k] - (k === 'hp' ? 75 : 20)) / max * 100 * 1.6)}%"></i></td></tr>`).join('')}<tr class="tot"><th>Total</th><td class="num">${e.total}</td><td></td></tr></tbody></table>`; }
 function detail(d) {
   const e = IDX.ents.find(x => x.kind === d.kind && x.slug === d.slug);
