@@ -34,15 +34,15 @@ h1,h2,h3{font-family:Montserrat,Inter,system-ui,sans-serif;letter-spacing:-.01em
 .tagline{font-family:Inter,system-ui,sans-serif;font-weight:400;font-size:clamp(1.15rem,3.2vw,1.5rem);line-height:1.35;margin:0 0 22px;color:var(--text)}.tagline b{font-weight:800}
 .homesearch{position:relative;display:flex;align-items:center;text-align:left}
 .homesearch .hicon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:34px;height:34px;pointer-events:none;display:block}.homesearch .hicon svg{width:100%;height:100%;display:block}
-.homesearch input{flex:1;min-width:0;height:64px;padding:0 18px 0 62px;font:inherit;font-size:1.3rem;color:var(--text);background:var(--field);border:1px solid var(--field-line);border-radius:10px;box-shadow:var(--shadow);font-family:ui-monospace,Menlo,monospace}
+.homesearch input{flex:1;min-width:0;height:64px;padding:0 18px 0 62px;font:inherit;font-size:1.3rem;color:var(--text);background:var(--field);border:1px solid var(--field-line);border-radius:0;box-shadow:var(--shadow);font-family:ui-monospace,Menlo,monospace}
 .homesearch input::placeholder{font-family:Inter,system-ui,sans-serif;color:var(--muted)}.homesearch input:focus{outline:2px solid var(--accent);outline-offset:-1px}
-.homesearch .tok-menu{text-align:left}
-.homelinks{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px}
-.homelinks a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text);font-weight:600;font-size:.92rem;box-shadow:var(--shadow)}
+.homesearch .tok-menu{text-align:left;border-radius:0}
+.homelinks{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px}
+.homelinks a{display:inline-block;padding:2px 5px;line-height:1.3;border:1px solid var(--line);border-radius:0;background:var(--card);color:var(--text);font-weight:600;font-size:.92rem;box-shadow:var(--shadow)}
 .homelinks a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
 .homenew{margin:26px 0 0;font-size:.95rem}.homenew a{color:var(--text);font-weight:600}.homenew a:hover{color:var(--accent);text-decoration:none}
 .newpill{display:inline-block;margin-right:8px;padding:2px 6px;border-radius:3px;background:var(--accent);color:var(--accent-contrast);font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;vertical-align:2px}
-@media (max-width:560px){.homelinks{grid-template-columns:repeat(2,1fr)}.homesearch input{height:56px;font-size:1rem;padding:0 10px 0 52px}.homesearch .hicon{width:28px;height:28px;left:13px}}
+@media (max-width:560px){.homesearch input{height:56px;font-size:1rem;padding:0 10px 0 52px}.homesearch .hicon{width:28px;height:28px;left:13px}}
 .topsearch{flex:1;display:flex;max-width:640px;position:relative}.mainmenu{top:100%;left:0;right:0;color:var(--text)}
 .topsearch input{flex:1;min-width:0;font:inherit;font-size:.95rem;padding:8px 12px;border:1px solid var(--gpe-hover);border-radius:8px 0 0 8px;background:var(--gpe-surface);color:#fff;font-family:ui-monospace,Menlo,monospace}
 .topsearch input:focus{outline:2px solid var(--gpe-peach);outline-offset:-1px}
@@ -183,6 +183,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260917040730"></script>
+<script src="app.js?v=20260917041151"></script>
 </body>
 </html>
