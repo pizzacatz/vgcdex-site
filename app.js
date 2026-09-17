@@ -310,7 +310,7 @@ function speciesTable(rows) { return `<div class="tablewrap"><table class="list 
 // List columns (owner rule): Name is exactly as wide as the longest Pokémon name in the data, Type as wide as the widest
 // possible pair of type chips, stats shrink to content. Measured once per font load with a hidden table, set as CSS vars.
 let LIST_COLS = null;
-function sizeListCols() { if (!$('.list') && !$('.sphead')) return; const apply = () => { for (const [k, v] of Object.entries(LIST_COLS)) document.documentElement.style.setProperty('--' + k, v + 'px'); };
+function sizeListCols() { if (!$('.list') && !$('.sphead') && !$('.icard')) return; const apply = () => { for (const [k, v] of Object.entries(LIST_COLS)) document.documentElement.style.setProperty('--' + k, v + 'px'); };
   if (LIST_COLS) return apply();
   const m = document.createElement('div'); m.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap';
   const by = k => IDX.ents.filter(e => e.kind === k); const cats = [...new Set(by('move').map(e => e.cat))];
@@ -318,17 +318,18 @@ function sizeListCols() { if (!$('.list') && !$('.sphead')) return; const apply 
   const tbl = cells => `<table class="list" style="width:auto"><tbody><tr>${cells}</tr></tbody></table>`;
   m.innerHTML = tbl(by('species').map(e => `<td class="name sp">${nameCell(e)}</td>`).join('')) + tbl(by('move').map(e => `<td class="name mv"><a>${esc(e.name)}</a></td>`).join(''))
     + tbl(by('ability').map(e => `<td class="name ab"><a>${esc(e.name)}</a></td>`).join('')) + tbl(IDX.types.map(t => `<td class="type">${typeChip(t)}</td>`).join('')) + tbl(cats.map(c => `<td class="cat">${catChip(c)}</td>`).join(''))
-    + [...new Set(by('species').filter(e => e.types.length === 2).map(e => e.types.join('/')))].map(p => `<div class="chips big dual" style="display:inline-flex;flex-wrap:nowrap">${p.split('/').map(typeChip).join('')}</div>`).join('');
+    + [...new Set(by('species').filter(e => e.types.length === 2).map(e => e.types.join('/')))].map(p => `<div class="chips big dual" style="display:inline-flex;flex-wrap:nowrap">${p.split('/').map(typeChip).join('')}</div>`).join('')
+    + `<div class="scard icard"><div class="icats" id="icw" style="width:max-content">${IDX_ITEM_CATS.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div><div class="icats" id="ich">${IDX_ITEM_CATS.slice(0, 3).map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div></div>`;
   document.body.appendChild(m);
   const wmax = sel => Math.ceil(Math.max(...[...m.querySelectorAll(sel)].map(td => td.getBoundingClientRect().width)));
   const chips = [...m.querySelectorAll('td.type .chip')].map(c => c.getBoundingClientRect().width).sort((a, b) => b - a);
   const cellPad = m.querySelector('td.type').getBoundingClientRect().width - m.querySelector('td.type .chip').getBoundingClientRect().width;
-  LIST_COLS = { 'name-w': wmax('td.sp'), 'mname-w': wmax('td.mv'), 'aname-w': wmax('td.ab'), 'type-w': Math.ceil(chips[0] + chips[1] + 4 + cellPad), 'type1-w': wmax('td.type'), 'cat-w': wmax('td.cat'), 'dual-w': wmax('.dual') };
+  LIST_COLS = { 'name-w': wmax('td.sp'), 'mname-w': wmax('td.mv'), 'aname-w': wmax('td.ab'), 'type-w': Math.ceil(chips[0] + chips[1] + 4 + cellPad), 'type1-w': wmax('td.type'), 'cat-w': wmax('td.cat'), 'dual-w': wmax('.dual'), 'icat-w': Math.ceil(m.querySelector('#icw').getBoundingClientRect().width), 'icat-h': Math.ceil(m.querySelector('#ich').getBoundingClientRect().height) };
   m.remove(); apply();
   if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { LIST_COLS = null; sizeListCols(); }); }
 function moveTable(rows) { return `<div class="tablewrap"><table class="list moves"><thead><tr>${sortTh('Name', 'name', 'name')}${sortTh('Type', 'type', 'type')}${sortTh('Cat', 'cat', 'cat')}${sortTh('BP', 'bp', 'num')}${sortTh('Acc', 'acc', 'num')}${sortTh('PP', 'pp', 'num')}${sortTh('Prio', 'prio', 'num')}<th>Effect</th>${SUBS.length ? '<th>Learned by</th>' : ''}</tr></thead><tbody>${rows.map(e => `<tr><td class="name"><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td class="type">${typeChip(e.type)}</td><td class="cat">${catChip(e.cat)}</td><td class="num">${e.bp || '—'}</td><td class="num">${e.acc ?? '—'}</td><td class="num">${e.pp}</td><td class="num">${e.prio > 0 ? '+' : ''}${e.prio}</td><td class="muted">${esc(e.raw.short_desc || '')}</td>${SUBS.length ? `<td>${matchLine(e)}</td>` : ''}</tr>`).join('')}</tbody></table></div>`; }
 function abilityTable(rows) { return `<div class="tablewrap"><table class="list abilities"><thead><tr>${sortTh('Name', 'name', 'name')}<th>Effect</th>${sortTh('Pokémon', 'count', 'num')}</tr></thead><tbody>${rows.map(e => `<tr><td class="name"><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td class="muted">${esc(e.raw.short_desc || '')}</td><td class="num">${abilityCount(e)}</td></tr>`).join('')}</tbody></table></div>`; }
-function itemCard(e) { return `<a class="card item" href="${plink(e)}" data-nav><div class="art">${e.sprite ? `<img src="${e.sprite}" alt="" loading="lazy">` : ''}</div><div class="card-body"><div class="card-name">${esc(e.name)}</div><div class="chips">${e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div><div class="muted small">${esc(e.raw.short_desc || e.raw.description || '')}</div></div></a>`; }
+function itemCard(e) { return `<a class="scard icard" href="${plink(e)}" data-nav><div class="dtop"><div class="art">${e.sprite ? `<img src="${e.sprite}" alt="" loading="lazy">` : ''}${e.reg === IDX.currentReg ? `<span class="newreg">New in ${esc(e.reg)}</span>` : (e.legality[IDX.currentReg] === 'banned' ? '<span class="newreg banned">Banned</span>' : '')}</div><div class="icats">${e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div></div><div class="nm">${esc(e.name)}</div></a>`; }
 const SORTS = [['', 'Relevance'], ['name', 'Name'], ['dex', 'Dex #'], ['hp', 'HP'], ['atk', 'Attack'], ['def', 'Defense'], ['spa', 'Special Attack'], ['spd', 'Special Defense'], ['spe', 'Speed'], ['total', 'Total'], ['bp', 'Base Power'], ['acc', 'Accuracy'], ['pp', 'PP'], ['prio', 'Priority'], ['type', 'Type'], ['cat', 'Category'], ['count', 'Pokémon count']];
 function withoutKind(q) { let ast; try { ast = parse(q); } catch (e) { return null; } if (!ast) return null; const items = ast.type === 'and' ? ast.items : [ast]; const isKind = it => (it.type === 'term' && F[it.field] && F[it.field].name === 'kind') || (it.type === 'or' && it.items.every(x => x.type === 'term' && F[x.field] && F[x.field].name === 'kind')); if (!items.some(isKind)) return null; const rest = items.filter(it => !isKind(it)); return rest.length ? rest.map(astText).join(' ') : null; }
 function results(st) {
@@ -347,7 +348,7 @@ function results(st) {
   let body = '';
   for (const k of KINDS) { const rows = groups[k]; if (!rows) continue; const cap = rows;
     let inner; if (k === 'species') inner = st.view === 'list' ? speciesTable(cap) : `<div class="sgrid">${cap.map(speciesCard).join('')}</div>`;
-    else if (k === 'move') inner = moveTable(cap); else if (k === 'ability') inner = abilityTable(cap); else inner = `<div class="grid items">${cap.map(itemCard).join('')}</div>`;
+    else if (k === 'move') inner = moveTable(cap); else if (k === 'ability') inner = abilityTable(cap); else inner = `<div class="sgrid">${cap.map(itemCard).join('')}</div>`;
     body += `<section class="wrap group"><h2>${KIND_LABEL[k]} <span class="muted">${rows.length}</span></h2>${inner}</section>`; }
   return controls + body;
 }
