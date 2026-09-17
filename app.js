@@ -276,10 +276,13 @@ function setParam(k, v) { const p = new URLSearchParams(location.search); if (v 
 // ----- shell -----
 const isHome = st => !st.detail && !st.guide && !st.q && !st.adv;
 const ALL_ENTRIES = 'kind:species or kind:move or kind:ability or kind:item';
+const NAV_ICON = d => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+// the four front-page links; the phone menu shows them with icons
+const NAV_LINKS = randomId => `<a href="?adv=1" data-nav>${NAV_ICON('M4 4h16v16H4z M4 9h16')}<span>Advanced Search</span></a><a href="?guide=1" data-nav>${NAV_ICON('M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14 M12 17.5v.01')}<span>Syntax Guide</span></a><a href="${qlink(ALL_ENTRIES)}" data-nav>${NAV_ICON('M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z')}<span>All Entries</span></a><a href="#" id="${randomId}">${NAV_ICON('M3 7h4l10 10h4 M3 17h4l3-3 M14 10l3-3h4 M18 4l3 3-3 3 M18 14l3 3-3 3')}<span>Random Mon</span></a>`;
 function home() { const reg = IDX.currentReg;
   return `<section class="wrap home"><div class="home-in"><h1 class="tagline"><b>VGC Dex</b> is a powerful <br class="tlbr"><span class="tl2"><b>Pokémon Champions</b> search</span></h1>
   <form class="homesearch" id="form"><span class="hicon">${ICON}</span><input id="q" type="search" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Search"><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>
-  <nav class="homelinks"><a href="?adv=1" data-nav>Advanced Search</a><a href="?guide=1" data-nav>Syntax Guide</a><a href="${qlink(ALL_ENTRIES)}" data-nav>All Entries</a><a href="#" id="random2">Random Mon</a></nav>
+  <nav class="homelinks">${NAV_LINKS('random2')}</nav>
   <p class="homenew"><a href="${qlink('new:' + reg.toLowerCase())}" data-nav><span class="newpill">New</span>Regulation ${esc(reg)}</a></p></div></section>`; }
 // the home block's middle sits a third of the way down the screen; its height depends on how the tagline wraps
 function placeHome() { const h = $('.home-in'); if (h) h.parentNode.style.setProperty('--hh', h.offsetHeight + 'px'); }
@@ -288,7 +291,9 @@ function header(st) {
   const compact = !isHome(st);
   return `<header class="top"><div class="wrap top-in">
     <a class="brand" href="./" data-nav><span class="icon">${ICON}</span><span class="word">VGC Dex</span></a>
-    ${compact ? `<form class="topsearch" id="form"><input id="q" type="search" value="${esc(st.q)}" placeholder='Search Pokémon, moves, abilities, items…' spellcheck="false" autocomplete="off" autocapitalize="off"><button type="submit" aria-label="Search">⌕</button><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>` : ''}
+    ${compact ? `<form class="topsearch" id="form"><input id="q" type="search" value="${esc(st.q)}" placeholder="${matchMedia('(max-width:700px)').matches ? 'Search Pokémon, moves…' : 'Search Pokémon, moves, abilities, items…'}" spellcheck="false" autocomplete="off" autocapitalize="off"><button type="submit" aria-label="Search">⌕</button><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>` : ''}
+    <button type="button" class="menubtn" id="menubtn" aria-label="Menu" aria-expanded="false" aria-controls="topmenu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <nav class="topmenu" id="topmenu" hidden>${NAV_LINKS('random3')}</nav>
     <nav class="topnav"><a href="?guide=1" data-nav>Syntax</a><a href="#" id="random">Random</a><span class="reg">${esc(IDX.meta.regulation.regulation)}</span><button id="theme" title="Toggle theme" aria-label="Toggle theme">◐</button></nav>
   </div></header>`;
 }
@@ -716,7 +721,8 @@ function render() {
     $('#mainmenu').addEventListener('click', ev => { const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); pickSub(qi, r.dataset.pick); } }); }
   const f = $('#form'); if (f) f.addEventListener('submit', ev => { ev.preventDefault(); const v = $('#q').value.trim(); nav(v ? qlink(v) + (st.view !== 'grid' ? '&view=' + st.view : '') : ''); });
   const sort = $('#sort'); if (sort) sort.addEventListener('change', () => { let q = stripOrder(st.q); if (sort.value) q += ' order:' + sort.value; nav(qlink(q) + (st.view !== 'grid' ? '&view=' + st.view : '')); });
-  for (const id of ['random', 'random2']) { const el = $('#' + id); if (el) el.addEventListener('click', ev => { ev.preventDefault(); const sp = IDX.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); }
+  const mb = $('#menubtn'); if (mb) mb.addEventListener('click', () => { const m = $('#topmenu'); m.hidden = !m.hidden; mb.setAttribute('aria-expanded', String(!m.hidden)); });
+  for (const id of ['random', 'random2', 'random3']) { const el = $('#' + id); if (el) el.addEventListener('click', ev => { ev.preventDefault(); const sp = IDX.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); }
   const back = $('#back'); if (back) back.addEventListener('click', ev => { ev.preventDefault(); if (history.length > 1 && document.referrer !== '' || history.state === 'app') history.back(); else nav(''); });
   const th = $('#theme'); if (th) th.addEventListener('click', () => { const cur = document.documentElement.dataset.theme || 'light'; const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('vgcdex-theme', nx); } catch (e) {} });
 }
