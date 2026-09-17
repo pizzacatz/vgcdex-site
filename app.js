@@ -237,15 +237,16 @@ ORDER_KEYS.type = e => e.kind === 'species' ? e.types.join('/') : e.kind === 'mo
 ORDER_KEYS.cat = e => e.kind === 'move' ? e.cat : undefined;
 let AB_COUNT = null; const abilityCount = e => { if (!AB_COUNT) { AB_COUNT = {}; for (const x of IDX.ents) if (x.kind === 'species') for (const sl of x.abilitySlugs) AB_COUNT[sl] = (AB_COUNT[sl] || 0) + 1; } return AB_COUNT[e.slug] || 0; };
 ORDER_KEYS.count = e => e.kind === 'ability' ? abilityCount(e) : undefined;
+function sortEnts(out, order, dir) { const key = ORDER_KEYS[order], sgn = dir === 'asc' ? 1 : -1;
+  return out.sort((a, b) => { const x = key(a), y = key(b); if (x === undefined && y === undefined) return 0; if (x === undefined) return 1; if (y === undefined) return -1; return (x < y ? -1 : x > y ? 1 : 0) * sgn || a.name.localeCompare(b.name); }); }
 function search(idx, q) {
   const ast = parse(q); if (!ast) return { scope: KINDS, results: [], ast: null };
   const directives = {}; const scope = validate(ast, idx, directives);
   const abMatch = directives.matchups === 'abilities'; if (abMatch) idx = Object.assign(Object.create(idx), { abMatch: true });
   const out = []; for (const e of idx.ents) if (scope.has(e.kind) && evalNode(ast, e, idx)) out.push(e);
   const order = directives.order; let dir = directives.dir;
-  if (order) { const key = ORDER_KEYS[order]; if (!key) throw new QueryError('syntax', `order: must be one of ${Object.keys(ORDER_KEYS).join(', ')}`, [0, q.length]);
-    dir = dir || naturalDir(order); const sgn = dir === 'asc' ? 1 : -1;
-    out.sort((a, b) => { const x = key(a), y = key(b); if (x === undefined && y === undefined) return 0; if (x === undefined) return 1; if (y === undefined) return -1; return (x < y ? -1 : x > y ? 1 : 0) * sgn || a.name.localeCompare(b.name); }); }
+  if (order) { if (!ORDER_KEYS[order]) throw new QueryError('syntax', `order: must be one of ${Object.keys(ORDER_KEYS).join(', ')}`, [0, q.length]);
+    dir = dir || naturalDir(order); sortEnts(out, order, dir); }
   else out.sort((a, b) => (KIND_RANK[b.kind] - KIND_RANK[a.kind]) || (nameScore(ast, b) - nameScore(ast, a)) || (b.kind === 'species' && a.kind === 'species' ? (a.is_mega - b.is_mega) : 0) || a.name.localeCompare(b.name));
   const subs = []; (function walk(n, neg) { if (!n) return; if (n.type === 'term' && n.sub && !neg) subs.push(n); else if (n.type === 'not') walk(n.node, !neg); else if (n.items) n.items.forEach(x => walk(x, neg)); })(ast);
   const abTerms = []; if (abMatch) (function walk(n, neg) { if (!n) return; if (n.type === 'term' && !neg && F[n.field] && EFF_BUCKET[F[n.field].name]) abTerms.push(n); else if (n.type === 'not') walk(n.node, !neg); else if (n.items) n.items.forEach(x => walk(x, neg)); })(ast);
@@ -295,12 +296,12 @@ const EXAMPLES = [
   ['o:/heals?|restores?/ kind:ability', 'Healing abilities'], ['cat:berry o:/hp/', 'Berries mentioning HP'], ['total>=775 -is:mega order:spe', '775+ total non-Megas by Speed']];
 // ----- results -----
 function statRow(e) { return `<span class="statrow">${STATS.map(k => `<b>${STAT_LABEL[k]}</b>${e.ps[k]}`).join('')}</span>`; }
-let SUBS = [], ABT = [], SORT = null;
+let SUBS = [], ABT = [], SORT = { order: '', dir: '', link: () => '' };
 const stripOrder = q => q.replace(/\s*\b(order|sort|dir|direction):\S+/g, '').trim();
 // header click: first click uses the key's natural direction, a repeat click flips it
-function sortTh(label, key, cls = '') { const on = SORT && SORT.order === key; const cur = on ? SORT.dir : ''; const next = on ? (cur === 'asc' ? 'desc' : 'asc') : naturalDir(key);
-  const q = stripOrder(SORT ? SORT.q : '') + ' order:' + key + (next !== naturalDir(key) ? ' dir:' + next : '');
-  return `<th class="${cls} sortable${on ? ' on' : ''}"${on ? ` aria-sort="${cur === 'asc' ? 'ascending' : 'descending'}"` : ''}><a href="${qlink(q.trim()) + (SORT && SORT.view !== 'grid' ? '&view=' + SORT.view : '')}" data-nav>${label}<i class="arr" aria-hidden="true">${cur === 'asc' ? '▲' : '▼'}</i></a></th>`; }
+// SORT = { order, dir, link(key, dir) }; dir is passed only when it differs from the key's natural direction
+function sortTh(label, key, cls = '') { const on = SORT.order === key; const cur = on ? SORT.dir : ''; const next = on ? (cur === 'asc' ? 'desc' : 'asc') : naturalDir(key);
+  return `<th class="${cls} sortable${on ? ' on' : ''}"${on ? ` aria-sort="${cur === 'asc' ? 'ascending' : 'descending'}"` : ''}><a href="${SORT.link(key, next !== naturalDir(key) ? next : '')}" data-nav>${label}<i class="arr" aria-hidden="true">${cur === 'asc' ? '▲' : '▼'}</i></a></th>`; }
 function matchLine(e) { const via = ABT.length ? abilityMatches(ABT, e, IDX) : []; const viaHtml = via.length ? `<div class="matchline via">${via.map(x => `<span class="chip neutral">via ${esc(x.name)}</span>`).join('')}</div>` : ''; if (!SUBS.length) return viaHtml; const m = subMatches(SUBS, e, IDX); if (!m.length) return viaHtml; return viaHtml + `<div class="matchline">${m.slice(0, 8).map(x => x.kind === 'move' ? `<span class="mc type-${x.type}">${esc(x.name)}</span>` : `<span class="chip neutral">${esc(x.name)}</span>`).join('')}${m.length > 8 ? `<span class="muted small">+${m.length - 8}</span>` : ''}</div>`; }
 function speciesCard(e) { return `<a class="scard" href="${plink(e)}" data-nav><div class="dtop"><div class="art">${e.art ? `<img src="${e.art}" alt="" loading="lazy">` : ''}${e.is_mega ? '<span class="mega">Mega</span>' : ''}${e.reg === IDX.currentReg ? `<span class="newreg">New in ${esc(e.reg)}</span>` : (e.legality[IDX.currentReg] === 'banned' ? '<span class="newreg banned">Banned</span>' : '')}</div><table>${STATS.map(k => `<tr><td>${STAT_LABEL[k]}</td><td>${e.ps[k]}</td></tr>`).join('')}</table></div><div class="nm">${esc(e.name)}</div><div class="chips">${e.types.map(typeChip).join('')}</div>${viaLine(e)}</a>`; }
 function viaLine(e) { if (!ABT.length) return ''; const via = abilityMatches(ABT, e, IDX); return `<div class="via">${via.length ? via.map(x => `<span>via ${esc(x.name)}</span>`).join('') : '&nbsp;'}</div>`; }
@@ -334,7 +335,7 @@ function results(st) {
   try { r = search(IDX, q); }
   catch (err) { if (!(err instanceof QueryError)) throw err; const [s, e] = err.span || [0, 0];
     return `<section class="wrap"><div class="notice error"><b>${err.kind === 'syntax' ? 'Syntax error' : 'Scope error'}.</b> ${esc(err.message)}<pre><code>${esc(q.slice(0, s))}<mark>${esc(q.slice(s, e) || ' ')}</mark>${esc(q.slice(e))}</code></pre>${err.kind === 'semantic' ? '<p>Add <code>kind:species</code> or <code>kind:move</code>, or split it into two searches.</p>' : '<p>See the <a href="?guide=1" data-nav>syntax guide</a>.</p>'}<p><a href="${qlink(q).replace('?q=', '?adv=1&q=')}" data-nav>Edit in advanced search</a></p></div></section>`; }
-  SUBS = r.subs || []; ABT = r.abTerms || []; SORT = { q, order: r.order || '', dir: r.dir || '', view: st.view };
+  SUBS = r.subs || []; ABT = r.abTerms || []; SORT = { order: r.order || '', dir: r.dir || '', link: (k, d) => qlink(`${stripOrder(q)} order:${k}${d ? ' dir:' + d : ''}`.trim()) + (st.view !== 'grid' ? '&view=' + st.view : '') };
   const scopeTxt = r.scope.length === 4 ? 'all kinds' : r.scope.map(k => KIND_LABEL[k]).join(', ');
   const curOrder = r.order || '';
   const controls = `<div class="controls"><div class="wrap controls-in"><div class="count"><b>${r.results.length}</b> result${r.results.length === 1 ? '' : 's'} <span class="muted">· ${scopeTxt}</span> <a class="editadv" href="${qlink(q).replace('?q=', '?adv=1&q=')}${st.view === 'list' ? '&view=list' : ''}" data-nav>Edit in advanced search</a>${withoutKind(q) ? `<a class="editadv" href="${qlink(withoutKind(q))}" data-nav>Search all kinds</a>` : ''}</div>
@@ -366,14 +367,16 @@ function detail(d) {
   const back = `<p class="back"><a href="#" id="back">← Back</a></p>`;
   if (e.kind === 'species') {
     const megas = IDX.ents.filter(x => x.is_mega && x.base_slug === e.slug); const base = e.base_slug && IDX.speciesBySlug[e.base_slug];
-    const moves = e.learnset.map(s => IDX.moveBySlug[s]).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+    const p = new URLSearchParams(location.search); const so = ORDER_KEYS[p.get('sort')] ? p.get('sort') : 'name'; const sd = ['asc', 'desc'].includes(p.get('dir')) ? p.get('dir') : naturalDir(so);
+    const moves = sortEnts(e.learnset.map(s => IDX.moveBySlug[s]).filter(Boolean), so, sd);
+    SUBS = []; SORT = { order: so, dir: sd, link: (k, d) => `${plink(e)}&sort=${k}${d ? '&dir=' + d : ''}#learnset` };
     return `<section class="wrap page">${back}<div class="page-grid has-art"><div class="page-main"><h1>${esc(e.name)}${e.is_mega ? ' <span class="badge">Mega</span>' : ''}</h1><div class="chips big">${e.types.map(typeChip).join('')}</div>
       <p class="muted">#${e.dex ?? '—'} · ${e.kg} kg · <a href="${qlink('new:' + e.reg.toLowerCase())}" data-nav>since ${esc(e.reg)}</a>${base ? ` · Mega of <a href="${plink(base)}" data-nav>${esc(base.name)}</a>` : ''}${e.stone ? ` · holds <b>${esc(IDX.ents.find(x => x.kind === 'item' && x.slug === e.stone)?.name || e.stone)}</b>` : ''}</p>
       <h3>Abilities</h3><ul class="plain">${e.abilitySlugs.map((s, i) => { const a = IDX.ents.find(x => x.kind === 'ability' && x.slug === s); return `<li><a href="${a ? plink(a) : '#'}" data-nav><b>${esc(e.abilities[i])}</b></a>${e.raw.abilities && e.raw.abilities[i] && e.raw.abilities[i].is_hidden ? ' <span class="badge">Hidden</span>' : ''} <span class="muted">${esc(a ? a.raw.short_desc || '' : '')}</span></li>`; }).join('')}</ul>
       <h3>Stats</h3>${statTable(e)}<h3>Defensive matchups</h3>${effChips(e)}
       ${megas.length ? `<h3>Mega Evolutions</h3><div class="sgrid">${megas.map(speciesCard).join('')}</div>` : ''}
-      <h3>Learnset <span class="muted">${moves.length}</span></h3><div class="movechips">${moves.map(m => `<a class="mc type-${m.type}" href="${plink(m)}" data-nav>${esc(m.name)}</a>`).join('')}</div></div>
-      <div class="page-art"><div class="artbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div></div></div></section>`;
+      <h3 id="learnset">Learnset <span class="muted">${moves.length}</span></h3>${moveTable(moves)}</div>
+      <div class="page-art"><div class="artbox spbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div></div></div></section>`;
   }
   if (e.kind === 'move') { const lb = (IDX.learnedBy[e.slug] || []).filter(s => !s.is_mega);
     return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><h1>${esc(e.name)}</h1><div class="chips big">${typeChip(e.type)}${catChip(e.cat)}</div><div class="bigstat inline"><span><b>${e.bp || '—'}</b>BP</span><span><b>${e.acc ?? '—'}</b>Acc</span><span><b>${e.pp}</b>PP</span><span><b>${e.prio > 0 ? '+' : ''}${e.prio}</b>Prio</span></div><p>${esc(e.raw.long_desc || e.raw.short_desc || '')}</p><p class="muted">Target: ${esc(e.target)}${e.variable ? ' · variable power' : ''}</p>${e.classes.length ? `<h3>Classifications</h3><div class="chips">${e.classes.map(c => { const id = Object.keys(CLASS_BY_FLAG).find(k => CLASS_BY_FLAG[k] === c); return `<a href="${qlink('class:' + quote(c))}" data-nav class="chip neutral" title="${esc(id && CLASS_NOTE[id] || '')}">${esc(c)}</a>`; }).join('')}</div>` : ''}${e.flags.some(f => MECH_LABEL[f]) ? `<h3>Properties</h3><ul class="plain props">${e.flags.filter(f => MECH_LABEL[f]).map(f => `<li><a href="${qlink('flag:' + f)}" data-nav>${esc(MECH_LABEL[f])}</a></li>`).join('')}</ul>` : ''}
