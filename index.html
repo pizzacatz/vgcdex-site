@@ -9,7 +9,7 @@
 (function(){var t=new URLSearchParams(location.search).get('theme');if(t!=='light'&&t!=='dark')t=null;if(t){try{localStorage.setItem('vgcdex-theme',t)}catch(e){}}if(!t){try{t=localStorage.getItem('vgcdex-theme')}catch(e){}}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
 <link rel="icon" href="favicon.ico" sizes="48x48"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0d0d0d">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700;800&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
 <style>
 /* ---- GeorgiaPlayEvents brand primitives (docs/COLOR-SCHEME.md §8.3) ---- */
 :root{--gpe-gold:#ffd180;--gpe-coral:#ff9e80;--gpe-peach:#ffb072;--gpe-burnt:#a85526;--gpe-burnt-hover:#8f4520;--gpe-black:#0d0d0d;--gpe-surface:#1a1a1a;--gpe-hover:#2a2a2a;--gpe-cream:#fff1df;--gpe-card:#fdf7ef;--gpe-ink:#2c211b;--gpe-paper:#f8efe5}
@@ -30,9 +30,9 @@ h1,h2,h3{font-family:Montserrat,Inter,system-ui,sans-serif;letter-spacing:-.01em
 .brand{display:flex;align-items:center;gap:10px;color:#fff;font-family:Montserrat,sans-serif;font-weight:800;font-size:1.15rem;white-space:nowrap}.brand:hover{text-decoration:none}
 .brand .icon svg,.hero-icon svg{display:block}.brand .icon svg{width:30px;height:30px}
 .brand .word{background:linear-gradient(45deg,var(--gpe-gold),var(--gpe-coral));-webkit-background-clip:text;background-clip:text;color:transparent}
-#app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}#app>main{flex:1 0 auto}.home{max-width:760px;margin:0 auto;padding-block:clamp(40px,12vh,120px) 64px;text-align:center}
-.tagline{font-family:Inter,system-ui,sans-serif;font-weight:400;font-size:clamp(1.15rem,3.2vw,1.5rem);line-height:1.35;margin:0 0 22px;color:var(--text)}.tagline b{font-weight:800}
-.homesearch{position:relative;display:flex;align-items:center;text-align:left}
+#app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}#app>main{flex:1 0 auto}.home{max-width:960px;margin:0 auto;padding-block:24px;box-sizing:border-box;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.tagline{font-family:Inter,system-ui,sans-serif;font-weight:200;font-size:clamp(1.6rem,5vw,2.4rem);line-height:1.25;letter-spacing:-.01em;margin:0 0 26px;color:var(--text)}.tagline b{font-weight:800}
+.homesearch{position:relative;display:flex;align-items:center;text-align:left;width:100%;max-width:720px;margin:0 auto}
 .homesearch .hicon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:34px;height:34px;pointer-events:none;display:block}.homesearch .hicon svg{width:100%;height:100%;display:block}
 .homesearch input{flex:1;min-width:0;height:64px;padding:0 18px 0 62px;font:inherit;font-size:1.3rem;color:var(--text);background:var(--field);border:1px solid var(--field-line);border-radius:0;box-shadow:var(--shadow);font-family:ui-monospace,Menlo,monospace}
 .homesearch input::placeholder{font-family:Inter,system-ui,sans-serif;color:var(--muted)}.homesearch input:focus{outline:2px solid var(--accent);outline-offset:-1px}
@@ -44,9 +44,9 @@ h1,h2,h3{font-family:Montserrat,Inter,system-ui,sans-serif;letter-spacing:-.01em
 .newpill{display:inline-block;margin-right:8px;padding:2px 6px;border-radius:3px;background:var(--accent);color:var(--accent-contrast);font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;vertical-align:2px}
 @media (max-width:560px){.homesearch input{height:56px;font-size:1rem;padding:0 10px 0 52px}.homesearch .hicon{width:28px;height:28px;left:13px}}
 .topsearch{flex:1;display:flex;max-width:640px;position:relative}.mainmenu{top:100%;left:0;right:0;color:var(--text)}
-.topsearch input{flex:1;min-width:0;font:inherit;font-size:.95rem;padding:8px 12px;border:1px solid var(--gpe-hover);border-radius:8px 0 0 8px;background:var(--gpe-surface);color:#fff;font-family:ui-monospace,Menlo,monospace}
+.topsearch input{flex:1;min-width:0;font:inherit;font-size:.95rem;padding:8px 12px;border:1px solid var(--gpe-hover);border-radius:0;background:var(--gpe-surface);color:#fff;font-family:ui-monospace,Menlo,monospace}
 .topsearch input:focus{outline:2px solid var(--gpe-peach);outline-offset:-1px}
-.topsearch button{font:inherit;padding:0 14px;border:1px solid var(--gpe-hover);border-left:0;border-radius:0 8px 8px 0;background:var(--gpe-surface);color:var(--gpe-peach);cursor:pointer;font-size:1.1rem}
+.topsearch button{font:inherit;padding:0 14px;border:1px solid var(--gpe-hover);border-left:0;border-radius:0;background:var(--gpe-surface);color:var(--gpe-peach);cursor:pointer;font-size:1.1rem}
 .topnav{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:.9rem;font-weight:500}
 .topnav a{color:#fff}.topnav a:hover{color:var(--gpe-peach);text-decoration:none}
 .topnav .reg{font-size:.72rem;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:999px;border:1px solid var(--gpe-gold);color:var(--gpe-gold)}
@@ -183,6 +183,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260917041151"></script>
+<script src="app.js?v=20260917042416"></script>
 </body>
 </html>
