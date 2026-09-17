@@ -277,10 +277,13 @@ function setParam(k, v) { const p = new URLSearchParams(location.search); if (v 
 const isHome = st => !st.detail && !st.guide && !st.q && !st.adv;
 const ALL_ENTRIES = 'kind:species or kind:move or kind:ability or kind:item';
 function home() { const reg = IDX.currentReg;
-  return `<section class="wrap home"><h1 class="tagline"><b>VGC Dex</b> is a powerful <br class="tlbr"><span class="tl2"><b>Pokémon Champions</b> search</span></h1>
+  return `<section class="wrap home"><div class="home-in"><h1 class="tagline"><b>VGC Dex</b> is a powerful <br class="tlbr"><span class="tl2"><b>Pokémon Champions</b> search</span></h1>
   <form class="homesearch" id="form"><span class="hicon">${ICON}</span><input id="q" type="search" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Search"><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>
   <nav class="homelinks"><a href="?adv=1" data-nav>Advanced Search</a><a href="?guide=1" data-nav>Syntax Guide</a><a href="${qlink(ALL_ENTRIES)}" data-nav>All Entries</a><a href="#" id="random2">Random Mon</a></nav>
-  <p class="homenew"><a href="${qlink('new:' + reg.toLowerCase())}" data-nav><span class="newpill">New</span>Regulation ${esc(reg)}</a></p></section>`; }
+  <p class="homenew"><a href="${qlink('new:' + reg.toLowerCase())}" data-nav><span class="newpill">New</span>Regulation ${esc(reg)}</a></p></div></section>`; }
+// the home block's middle sits a third of the way down the screen; its height depends on how the tagline wraps
+function placeHome() { const h = $('.home-in'); if (h) h.parentNode.style.setProperty('--hh', h.offsetHeight + 'px'); }
+window.addEventListener('resize', placeHome); if (document.fonts) document.fonts.ready.then(placeHome);
 function header(st) {
   const compact = !isHome(st);
   return `<header class="top"><div class="wrap top-in">
@@ -703,7 +706,7 @@ function rerenderRows(k, keepFocus) { const box = $('#' + k + '-rows'); if (!box
 function render() {
   const st = state();
   let body; if (st.detail) body = detail(st.detail); else if (st.guide) body = guide(); else if (st.q && !st.adv) body = results(st); else if (isHome(st)) body = home(); else { if (st.adv && st.q) { if (!FS || FS.src !== st.q) { FS = queryToForm(st.q); FS.src = st.q; FS.view = st.view; } } else if (!FS || FS.src) { FS = emptyForm(); } body = advForm(); }
-  app.innerHTML = (isHome(st) ? '' : header(st)) + `<main>${body}</main>` + footer(); sizeListCols();
+  app.innerHTML = (isHome(st) ? '' : header(st)) + `<main>${body}</main>` + footer(); sizeListCols(); placeHome();
   if (location.hash) { const tgt = document.getElementById(location.hash.slice(1)); if (tgt) setTimeout(() => tgt.scrollIntoView({ block: 'start' }), 0); }
   const SITE = 'VGC Dex Pokemon Champions Search'; document.title = st.detail ? `${IDX.ents.find(x => x.kind === st.detail.kind && x.slug === st.detail.slug)?.name || SITE} · VGC Dex` : st.q ? `${st.q} · VGC Dex` : SITE;
   bindForm();

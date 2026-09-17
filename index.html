@@ -30,7 +30,7 @@ h1,h2,h3{font-family:Montserrat,Inter,system-ui,sans-serif;letter-spacing:-.01em
 .brand{display:flex;align-items:center;gap:10px;color:#fff;font-family:Montserrat,sans-serif;font-weight:800;font-size:1.15rem;white-space:nowrap}.brand:hover{text-decoration:none}
 .brand .icon svg,.hero-icon svg{display:block}.brand .icon svg{width:30px;height:30px}
 .brand .word{background:linear-gradient(45deg,var(--gpe-gold),var(--gpe-coral));-webkit-background-clip:text;background-clip:text;color:transparent}
-#app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}#app>main{flex:1 0 auto}.home{max-width:960px;margin:0 auto;padding-block:24px;box-sizing:border-box;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;text-align:center}
+#app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}#app>main{flex:1 0 auto}.home{max-width:960px;margin:0 auto;padding-block:max(24px,calc(33.333vh - var(--hh,270px) / 2)) 24px;padding-block-start:max(24px,calc(33.333dvh - var(--hh,270px) / 2));box-sizing:border-box;min-height:100vh;min-height:100dvh;text-align:center}
 .tagline{font-family:Inter,system-ui,sans-serif;font-weight:200;font-size:clamp(1.6rem,5vw,2.4rem);line-height:1.25;letter-spacing:-.01em;margin:0 0 26px;color:var(--text)}.tagline b{font-weight:800}
 .homesearch{position:relative;display:flex;align-items:center;text-align:left;width:100%;max-width:720px;margin:0 auto}
 .homesearch .hicon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:34px;height:34px;pointer-events:none;display:block}.homesearch .hicon svg{width:100%;height:100%;display:block}
@@ -183,6 +183,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:30px;bac
 </head>
 <body>
 <div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260917043354"></script>
+<script src="app.js?v=20260917045113"></script>
 </body>
 </html>
