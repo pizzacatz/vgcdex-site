@@ -358,10 +358,11 @@ function results(st) {
   try { r = search(IDX, q); }
   catch (err) { if (!(err instanceof QueryError)) throw err; const [s, e] = err.span || [0, 0];
     return `<section class="wrap"><div class="notice error"><b>${err.kind === 'syntax' ? 'Syntax error' : 'Scope error'}.</b> ${esc(err.message)}<pre><code>${esc(q.slice(0, s))}<mark>${esc(q.slice(s, e) || ' ')}</mark>${esc(q.slice(e))}</code></pre>${err.kind === 'semantic' ? '<p>Add <code>kind:species</code> or <code>kind:move</code>, or split it into two searches.</p>' : '<p>See the <a href="?guide=1" data-nav>syntax guide</a>.</p>'}<p><a href="${qlink(q).replace('?q=', '?adv=1&q=')}" data-nav>Edit in Advanced Search</a></p></div></section>`; }
-  SUBS = r.subs || []; ABT = r.abTerms || []; SORT = { order: r.order || '', dir: r.dir || '', link: (k, d) => qlink(`${stripOrder(q)} order:${k}${d ? ' dir:' + d : ''}`.trim()) + (st.view !== 'grid' ? '&view=' + st.view : '') };
+  SUBS = r.subs || []; ABT = r.abTerms || [];
+  const ignored = IGNORED.length ? `<div class="ignored">${ignoredLine(IGNORED)}</div>` : ''; IGNORED = []; SORT = { order: r.order || '', dir: r.dir || '', link: (k, d) => qlink(`${stripOrder(q)} order:${k}${d ? ' dir:' + d : ''}`.trim()) + (st.view !== 'grid' ? '&view=' + st.view : '') };
   const scopeTxt = r.scope.length === 4 ? 'all kinds' : r.scope.map(k => KIND_LABEL[k]).join(', ');
   const curOrder = r.order || '';
-  const controls = `<div class="controls"><div class="wrap controls-in"><div class="count"><b>${r.results.length}</b> result${r.results.length === 1 ? '' : 's'} <span class="muted">· ${scopeTxt}</span> <a class="editadv" href="${qlink(q).replace('?q=', '?adv=1&q=')}${st.view === 'list' ? '&view=list' : ''}" data-nav>Edit in Advanced Search</a>${withoutKind(q) ? `<a class="editadv" href="${qlink(withoutKind(q))}" data-nav>Search All Kinds</a>` : ''}</div>
+  const controls = `<div class="controls"><div class="wrap controls-in"><div class="count"><b>${r.results.length}</b> result${r.results.length === 1 ? '' : 's'} <span class="muted">· ${scopeTxt}</span> <a class="editadv" href="${qlink(q).replace('?q=', '?adv=1&q=')}${st.view === 'list' ? '&view=list' : ''}" data-nav>Edit in Advanced Search</a>${withoutKind(q) ? `<a class="editadv" href="${qlink(withoutKind(q))}" data-nav>Search All Kinds</a>` : ''}${ignored}</div>
     <div class="ctl"><label>View</label><span class="seg"><a href="${setParam('view', 'grid')}" data-nav class="${st.view === 'grid' ? 'on' : ''}">Grid</a><a href="${setParam('view', 'list')}" data-nav class="${st.view === 'list' ? 'on' : ''}">List</a></span>
     <label>Sort</label><select id="sort">${SORTS.map(([v, l]) => `<option value="${v}" ${v === curOrder ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div></div>`;
   if (!r.results.length) return controls + `<section class="wrap"><div class="notice zero"><b>No results.</b> The query parsed fine and was searched across ${scopeTxt}.<ul><li>Bare words match <b>names</b> only. Use <code>o:</code> for description text.</li><li>Stats are the in-game values, not base stats.</li><li><code>m:</code> wants a move name, e.g. <code>m:"iron head"</code>.</li></ul><p><a href="${qlink(q).replace('?q=', '?adv=1&q=')}" data-nav>Edit in Advanced Search</a>${withoutKind(q) ? ` · <a href="${qlink(withoutKind(q))}" data-nav>Search all kinds for these terms</a>` : ''}</p></div></section>`;
@@ -664,7 +665,9 @@ function ensureDupRow(kind) { const fs = FS; if (kind === 'regs') { if (!fs.regs
   if (kind === 'matchups') { if (!fs.matchups.some(r => !r.type)) { fs.matchups.push({ rel: 'weak', type: '' }); $('#matchups-rows').insertAdjacentHTML('beforeend', matchRow(fs.matchups[fs.matchups.length - 1], fs.matchups.length - 1)); } return; }
   const rows = fs[kind]; if (rows.some(r => r.val === '')) return; const r = { stat: kind === 'stats' ? 'spe' : 'bp', op: '>=', val: '' }; rows.push(r); $('#' + kind + '-rows').insertAdjacentHTML('beforeend', dupRow(kind, r, rows.length - 1, kind === 'stats' ? STAT_OPTS : MNUM_OPTS)); }
 function updatePreview() { if (!FS) return; const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || ''; const go = $('#go'); if (go) go.disabled = !q; const c = $('#qcount'); if (c) { let txt = ''; if (q) { try { const n = search(IDX, q).results.length; txt = n === 1 ? '1 result' : n + ' results'; } catch (e) { txt = e instanceof QueryError ? (e.kind === 'syntax' ? 'syntax error' : 'scope error') : ''; } } c.textContent = txt; } }
-function submitForm() { readForm(); if (!flushTokens()) { updatePreview(); return; } readForm(); const q = buildQuery(FS); if (!q) return; nav(qlink(q) + (FS.view === 'list' ? '&view=list' : '')); }
+function submitForm() { readForm(); const skipped = flushTokens(); readForm(); const q = buildQuery(FS);
+  if (!q) { const bar = $('#qcount'); if (bar && skipped.length) bar.innerHTML = `<span class="ignored">${ignoredLine(skipped)}</span>`; return; }
+  IGNORED = skipped; nav(qlink(q) + (FS.view === 'list' ? '&view=list' : '')); }
 function addToken(key, raw) {
   const v = raw.trim(); if (!v) return false; let val = v;
   if (key === 'types') { const t = norm(v); if (!IDX.types.includes(t)) return false; val = t; }
@@ -678,15 +681,16 @@ function addToken(key, raw) {
   if (FS[key].some(x => x.v === val)) return true;
   FS[key].push({ v: val, neg: false }); return true;
 }
-// typed-but-uncommitted text in a picker: commit it like Enter does, or mark the field
-function flushInput(input) { if (!input || input.dataset.single) return true; const v = input.value.trim(); const wrap = input.closest('.tok-wrap');
-  const clear = () => { if (wrap) { wrap.classList.remove('bad'); wrap.querySelector('.tokerr')?.remove(); } };
-  if (!v) { clear(); return true; }
-  if (addToken(input.dataset.tkin, v)) { input.value = ''; clear(); rerenderTokens(input.dataset.tkin); return true; }
-  if (wrap) { wrap.classList.add('bad'); let msg = wrap.querySelector('.tokerr'); if (!msg) { msg = document.createElement('p'); msg.className = 'tokerr'; wrap.appendChild(msg); } msg.textContent = TOK_ERR[input.dataset.tkin] || 'Not recognized.'; }
+// typed-but-uncommitted text in a picker: commit it like Enter does; text that is not a
+// valid entry is left out of the search and reported once on the results page (D-79)
+let IGNORED = [];
+const TOK_FIELD = { moves: 'Learns', abilities: 'Abilities', types: 'Types', props: 'Properties', icats: 'Item category', crit: 'Formes' };
+function flushInput(input) { if (!input || input.dataset.single) return true; const v = input.value.trim(); if (!v) return true;
+  if (addToken(input.dataset.tkin, v)) { input.value = ''; rerenderTokens(input.dataset.tkin); return true; }
   return false; }
-const TOK_ERR = { moves: 'Not a move name or a valid move expression, e.g. t:rock cat:physical bp>=75.', abilities: 'Not an ability name, a regex like /weather/, or a valid ability expression.', types: 'Not a type.', props: 'Not a move property.', crit: 'Not one of the listed formes.', icats: 'Not an item category.' };
-function flushTokens() { let ok = true; for (const i of document.querySelectorAll('#adv .tok-in')) if (!flushInput(i)) ok = false; return ok; }
+// returns the entries that could not be used; they stay in their boxes
+function flushTokens() { const skipped = []; for (const i of document.querySelectorAll('#adv .tok-in')) if (!flushInput(i)) skipped.push({ field: TOK_FIELD[i.dataset.tkin] || 'Field', text: i.value.trim() }); return skipped; }
+const ignoredLine = list => `Ignored: ${list.map(x => `“${esc(x.text)}” from ${esc(x.field)}`).join(', ')}.`;
 function rerenderTokens(key) { const box = $(`[data-tk="${key}"]`); if (!box) return; box.closest('.tok-wrap').outerHTML = tokens(key); updatePreview(); }
 function bindForm() {
   const f = $('#adv'); if (!f) return; updatePreview();
@@ -713,7 +717,7 @@ function bindForm() {
     if (!ev.target.closest('.pillsel')) f.querySelectorAll('.pill-menu').forEach(m => m.hidden = true);
   });
   f.addEventListener('submit', ev => { ev.preventDefault(); submitForm(); });
-  $('#copylink').addEventListener('click', () => { readForm(); if (!flushTokens()) { updatePreview(); return; } readForm(); const q = buildQuery(FS); if (!q) return; const url = location.origin + location.pathname + qlink(q) + (FS.view === 'list' ? '&view=list' : ''); const b = $('#copylink'); const lbl = b.querySelector('.lbl'); const done = () => { lbl.textContent = 'Copied'; b.classList.add('ok'); setTimeout(() => { lbl.textContent = 'Copy link'; b.classList.remove('ok'); }, 1500); }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => { prompt('Copy this link', url); }); else prompt('Copy this link', url); });
+  $('#copylink').addEventListener('click', () => { readForm(); const skipped = flushTokens(); readForm(); const q = buildQuery(FS); if (!q) { const bar = $('#qcount'); if (bar && skipped.length) bar.innerHTML = `<span class="ignored">${ignoredLine(skipped)}</span>`; return; } const url = location.origin + location.pathname + qlink(q) + (FS.view === 'list' ? '&view=list' : ''); const b = $('#copylink'); const lbl = b.querySelector('.lbl'); const done = () => { lbl.textContent = skipped.length ? 'Copied, some ignored' : 'Copied'; b.classList.add('ok'); setTimeout(() => { lbl.textContent = 'Copy link'; b.classList.remove('ok'); }, 1500); }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => { prompt('Copy this link', url); }); else prompt('Copy this link', url); });
   f.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); submitForm(); } });
   $('#reset').addEventListener('click', () => { const tab = FS.tab; FS = emptyForm(); FS.tab = tab; history.replaceState('app', '', '?adv=1'); render(); });
   document.querySelectorAll('.tabs [data-tab]').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); readForm(); FS.tab = a.dataset.tab; FS.also = []; render(); }));
