@@ -371,7 +371,9 @@ function detail(d) {
   if (!e) return `<section class="wrap"><div class="notice error">No ${d.kind} called <code>${esc(d.slug)}</code>.</div></section>`;
   const back = `<p class="back"><a href="#" id="back">← Back</a></p>`;
   if (e.kind === 'species') {
-    const megas = IDX.ents.filter(x => x.is_mega && x.base_slug === e.slug); const base = e.base_slug && IDX.speciesBySlug[e.base_slug];
+    const megas = IDX.ents.filter(x => x.is_mega && x.base_slug === e.slug);
+    // variants: the other non-Mega Pokémon sharing this National Dex number (regional formes, Rotom, Tauros…)
+    const variants = e.is_mega || e.dex == null ? [] : IDX.ents.filter(x => x.kind === 'species' && !x.is_mega && x.dex === e.dex && x !== e); const base = e.base_slug && IDX.speciesBySlug[e.base_slug];
     const p = new URLSearchParams(location.search); const so = ORDER_KEYS[p.get('sort')] ? p.get('sort') : 'name'; const sd = ['asc', 'desc'].includes(p.get('dir')) ? p.get('dir') : naturalDir(so);
     const moves = sortEnts(e.learnset.map(s => IDX.moveBySlug[s]).filter(Boolean), so, sd);
     SUBS = []; SORT = { order: so, dir: sd, link: (k, d) => `${plink(e)}&sort=${k}${d ? '&dir=' + d : ''}#learnset` };
@@ -380,6 +382,7 @@ function detail(d) {
       <div class="spart"><div class="artbox spbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div></div></div>
       <h3>Abilities</h3><ul class="plain">${e.abilitySlugs.map((s, i) => { const a = IDX.ents.find(x => x.kind === 'ability' && x.slug === s); return `<li><a href="${a ? plink(a) : '#'}" data-nav><b>${esc(e.abilities[i])}</b></a>${e.raw.abilities && e.raw.abilities[i] && e.raw.abilities[i].is_hidden ? ' <span class="badge">Hidden</span>' : ''} <span class="muted">${esc(a ? a.raw.short_desc || '' : '')}</span></li>`; }).join('')}</ul>
       <h3>Stats</h3>${statTable(e)}<h3>Defensive matchups</h3>${effChips(e)}
+      ${variants.length ? `<h3>Variants</h3><div class="sgrid">${variants.map(speciesCard).join('')}</div>` : ''}
       ${megas.length ? `<h3>Mega Evolutions</h3><div class="sgrid">${megas.map(speciesCard).join('')}</div>` : ''}
       <h3 id="learnset">Learnset <span class="muted">${moves.length}</span></h3>${moveTable(moves)}</div></div></section>`;
   }
