@@ -310,19 +310,20 @@ function speciesTable(rows) { return `<div class="tablewrap"><table class="list 
 // List columns (owner rule): Name is exactly as wide as the longest Pokémon name in the data, Type as wide as the widest
 // possible pair of type chips, stats shrink to content. Measured once per font load with a hidden table, set as CSS vars.
 let LIST_COLS = null;
-function sizeListCols() { if (!$('.list')) return; const apply = () => { for (const [k, v] of Object.entries(LIST_COLS)) document.documentElement.style.setProperty('--' + k, v + 'px'); };
+function sizeListCols() { if (!$('.list') && !$('.sphead')) return; const apply = () => { for (const [k, v] of Object.entries(LIST_COLS)) document.documentElement.style.setProperty('--' + k, v + 'px'); };
   if (LIST_COLS) return apply();
   const m = document.createElement('div'); m.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap';
   const by = k => IDX.ents.filter(e => e.kind === k); const cats = [...new Set(by('move').map(e => e.cat))];
   // one table per group: cells in the same column of one table share a width, which would cross-contaminate the groups
   const tbl = cells => `<table class="list" style="width:auto"><tbody><tr>${cells}</tr></tbody></table>`;
   m.innerHTML = tbl(by('species').map(e => `<td class="name sp">${nameCell(e)}</td>`).join('')) + tbl(by('move').map(e => `<td class="name mv"><a>${esc(e.name)}</a></td>`).join(''))
-    + tbl(by('ability').map(e => `<td class="name ab"><a>${esc(e.name)}</a></td>`).join('')) + tbl(IDX.types.map(t => `<td class="type">${typeChip(t)}</td>`).join('')) + tbl(cats.map(c => `<td class="cat">${catChip(c)}</td>`).join(''));
+    + tbl(by('ability').map(e => `<td class="name ab"><a>${esc(e.name)}</a></td>`).join('')) + tbl(IDX.types.map(t => `<td class="type">${typeChip(t)}</td>`).join('')) + tbl(cats.map(c => `<td class="cat">${catChip(c)}</td>`).join(''))
+    + [...new Set(by('species').filter(e => e.types.length === 2).map(e => e.types.join('/')))].map(p => `<div class="chips big dual" style="display:inline-flex;flex-wrap:nowrap">${p.split('/').map(typeChip).join('')}</div>`).join('');
   document.body.appendChild(m);
   const wmax = sel => Math.ceil(Math.max(...[...m.querySelectorAll(sel)].map(td => td.getBoundingClientRect().width)));
   const chips = [...m.querySelectorAll('td.type .chip')].map(c => c.getBoundingClientRect().width).sort((a, b) => b - a);
   const cellPad = m.querySelector('td.type').getBoundingClientRect().width - m.querySelector('td.type .chip').getBoundingClientRect().width;
-  LIST_COLS = { 'name-w': wmax('td.sp'), 'mname-w': wmax('td.mv'), 'aname-w': wmax('td.ab'), 'type-w': Math.ceil(chips[0] + chips[1] + 4 + cellPad), 'type1-w': wmax('td.type'), 'cat-w': wmax('td.cat') };
+  LIST_COLS = { 'name-w': wmax('td.sp'), 'mname-w': wmax('td.mv'), 'aname-w': wmax('td.ab'), 'type-w': Math.ceil(chips[0] + chips[1] + 4 + cellPad), 'type1-w': wmax('td.type'), 'cat-w': wmax('td.cat'), 'dual-w': wmax('.dual') };
   m.remove(); apply();
   if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { LIST_COLS = null; sizeListCols(); }); }
 function moveTable(rows) { return `<div class="tablewrap"><table class="list moves"><thead><tr>${sortTh('Name', 'name', 'name')}${sortTh('Type', 'type', 'type')}${sortTh('Cat', 'cat', 'cat')}${sortTh('BP', 'bp', 'num')}${sortTh('Acc', 'acc', 'num')}${sortTh('PP', 'pp', 'num')}${sortTh('Prio', 'prio', 'num')}<th>Effect</th>${SUBS.length ? '<th>Learned by</th>' : ''}</tr></thead><tbody>${rows.map(e => `<tr><td class="name"><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td class="type">${typeChip(e.type)}</td><td class="cat">${catChip(e.cat)}</td><td class="num">${e.bp || '—'}</td><td class="num">${e.acc ?? '—'}</td><td class="num">${e.pp}</td><td class="num">${e.prio > 0 ? '+' : ''}${e.prio}</td><td class="muted">${esc(e.raw.short_desc || '')}</td>${SUBS.length ? `<td>${matchLine(e)}</td>` : ''}</tr>`).join('')}</tbody></table></div>`; }
@@ -371,7 +372,7 @@ function detail(d) {
     const p = new URLSearchParams(location.search); const so = ORDER_KEYS[p.get('sort')] ? p.get('sort') : 'name'; const sd = ['asc', 'desc'].includes(p.get('dir')) ? p.get('dir') : naturalDir(so);
     const moves = sortEnts(e.learnset.map(s => IDX.moveBySlug[s]).filter(Boolean), so, sd);
     SUBS = []; SORT = { order: so, dir: sd, link: (k, d) => `${plink(e)}&sort=${k}${d ? '&dir=' + d : ''}#learnset` };
-    return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><div class="sphead"><div class="spinfo"><h1>${esc(e.name)}${e.is_mega ? ' <span class="badge">Mega</span>' : ''}</h1><div class="chips big">${e.types.map(typeChip).join('')}</div>
+    return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><h1>${esc(e.name)}${e.is_mega ? ' <span class="badge">Mega</span>' : ''}</h1><div class="sphead"><div class="spinfo"><div class="chips big">${e.types.map(typeChip).join('')}</div>
       <ul class="spmeta muted"><li>#${e.dex ?? '—'}</li><li>${e.kg} kg</li><li><a href="${qlink('new:' + e.reg.toLowerCase())}" data-nav>since ${esc(e.reg)}</a></li>${base ? `<li>Mega of <a href="${plink(base)}" data-nav>${esc(base.name)}</a></li>` : ''}${e.stone ? `<li>holds <b>${esc(IDX.ents.find(x => x.kind === 'item' && x.slug === e.stone)?.name || e.stone)}</b></li>` : ''}</ul></div>
       <div class="artbox spbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div></div>
       <h3>Abilities</h3><ul class="plain">${e.abilitySlugs.map((s, i) => { const a = IDX.ents.find(x => x.kind === 'ability' && x.slug === s); return `<li><a href="${a ? plink(a) : '#'}" data-nav><b>${esc(e.abilities[i])}</b></a>${e.raw.abilities && e.raw.abilities[i] && e.raw.abilities[i].is_hidden ? ' <span class="badge">Hidden</span>' : ''} <span class="muted">${esc(a ? a.raw.short_desc || '' : '')}</span></li>`; }).join('')}</ul>
