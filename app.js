@@ -330,7 +330,7 @@ function effChips(e) { const w = IDX.types.filter(t => e.eff[t] >= 2), rs = IDX.
 const multLabel = x => x === 0 ? 'immune' : x === 0.25 ? '×¼' : x === 0.5 ? '×½' : Number.isInteger(x) ? '×' + x : '×' + String(x).replace(/^0/, '');
 const effBucket = x => x === 0 ? 'immune' : x >= 4 ? 'xweak' : x >= 2 ? 'weak' : x <= 0.25 ? 'xresists' : x < 1 ? 'resists' : null;
 function abilityEffLines(e) { const lines = []; for (const sl of e.abilitySlugs) { const m = IDX.abilityTypeMod[sl]; if (!m) continue; const ab = IDX.abilityBySlug[sl]; const parts = Object.keys(m).filter(t => IDX.types.includes(t) && e.eff[t] > 0).map(t => { const x = e.eff[t] * m[t]; const b = effBucket(x); const chip = typeChip(t); return `${b ? `<a href="${qlink(b + ':' + t + ' matchups:abilities')}" data-nav>${chip}</a>` : chip} <span class="muted">${multLabel(x)} (chart ${multLabel(e.eff[t])})</span>`; }); if (parts.length) lines.push(`<p class="abeff"><b>With ${esc(ab ? ab.name : sl)}:</b> ${parts.join(' · ')}</p>`); }
-  return lines.length ? lines.join('') : '<p class="muted small">Type chart. None of its abilities changes a matchup.</p>'; }
+  return lines.join(''); }
 function statTable(e) { const max = 250; return `<table class="stats"><tbody>${STATS.map(k => `<tr><th>${STAT_LABEL[k]}</th><td class="num">${e.ps[k]}</td><td class="bar"><i style="width:${Math.min(100, (e.ps[k] - (k === 'hp' ? 75 : 20)) / max * 100 * 1.6)}%"></i></td></tr>`).join('')}<tr class="tot"><th>Total</th><td class="num">${e.total}</td><td></td></tr></tbody></table>`; }
 function detail(d) {
   const e = IDX.ents.find(x => x.kind === d.kind && x.slug === d.slug);
