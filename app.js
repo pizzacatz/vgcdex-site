@@ -563,6 +563,7 @@ function tokens(key) { const fs = FS, m = TK_META()[key]; return `<div class="to
 function singlePicker(key, fsField, value) { const m = TK_META()[key]; return `<div class="tok-wrap single"><input type="text" class="form-input tok-in" data-fs="${fsField}" data-tkin="${key}" data-single="1" value="${esc(value)}" placeholder="${esc(m.placeholder)}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="tok-menu" data-menu="${key}" hidden></div></div>`; }
 // --- suggestion menu (Scryfall-style list directly under the field; one entry per row) ---
 let MENU = { key: null, rows: [], hi: -1 };
+let SELBOX_HAD_FOCUS = false;
 let MENU_MUTE = false; // set while focus is restored after a pick, so the list does not reopen
 let MENU_HOLD = false;
 document.addEventListener('pointerdown', ev => { MENU_HOLD = !!ev.target.closest('.tok-menu'); if (!MENU_HOLD && MENU.menu && !MENU.menu.hidden && !ev.target.closest('.tok-wrap') && !(MENU.input && ev.target === MENU.input)) closeMenu(); }, true);
@@ -722,13 +723,13 @@ function bindForm() {
     if (ev.key === 'Enter') { if (t.dataset.mtypein !== undefined && !(MENU.rows.length && MENU.hi >= 0)) { ev.preventDefault(); setMatchType(t.dataset.mtypein, t.value.trim()); return; } if (t.dataset.acsub && !(MENU.rows.length && MENU.hi >= 0)) { closeMenu(); return; } if (MENU.key === 'sub' && !(MENU.rows.length && MENU.hi >= 0)) { ev.preventDefault(); if (addToken(t.dataset.tkin, t.value)) { closeMenu(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } return; } ev.preventDefault(); if (MENU.rows.length && MENU.hi >= 0) pick(t, MENU.rows[MENU.hi][0]); else if (t.dataset.single) { closeMenu(); readForm(); } else if (addToken(t.dataset.tkin, t.value)) { closeMenu(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } return; }
     if (ev.key === 'Backspace' && !t.value && t.dataset.mtypein !== undefined && FS.matchups[t.dataset.mtypein] && FS.matchups[t.dataset.mtypein].type) { ev.preventDefault(); setMatchType(t.dataset.mtypein, ''); return; }
     if (ev.key === 'Backspace' && !t.value && !t.dataset.single && FS[t.dataset.tkin].length) { FS[t.dataset.tkin].pop(); rerenderTokens(t.dataset.tkin); $(`[data-tkin="${t.dataset.tkin}"]`)?.focus(); } });
-  f.addEventListener('mousedown', ev => { if (ev.target.closest('.tok-menu')) ev.preventDefault(); });
+  f.addEventListener('mousedown', ev => { if (ev.target.closest('.tok-menu')) ev.preventDefault(); const sb = ev.target.closest('[data-selbox]'); SELBOX_HAD_FOCUS = !!(sb && sb.contains(document.activeElement)); });
   f.addEventListener('click', ev => {
     const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); const input = r.closest('.tok-wrap').querySelector('.tok-in'); pick(input, r.dataset.pick); } });
   f.addEventListener('click', ev => {
     const rp = ev.target.closest('[data-rowpol]'); if (rp) { rp.classList.toggle('not'); rp.classList.toggle('is'); rp.textContent = rp.classList.contains('not') ? 'NOT' : 'IS'; readForm(); return; }
     const sb = ev.target.closest('[data-selbox]'); if (sb) { const menu = sb.parentElement.querySelector('.tok-menu'); const inp = sb.querySelector('.tok-in');
-      if (!menu.hidden) { closeMenu(); inp.focus(); } else { inp.focus(); openMenu(inp); } return; }
+      if (!SELBOX_HAD_FOCUS) { inp.focus(); openMenu(inp); } else if (menu.hidden) { inp.focus(); openMenu(inp); } else { closeMenu(); inp.focus(); } return; }
     const pol = ev.target.closest('[data-pol]'); if (pol) { const x = FS[pol.dataset.pol][Number(pol.dataset.i)]; x.neg = !x.neg; rerenderTokens(pol.dataset.pol); return; }
     const tx = ev.target.closest('[data-tx]'); if (tx) { FS[tx.dataset.tx].splice(Number(tx.dataset.i), 1); rerenderTokens(tx.dataset.tx); return; }
     if (ev.target.classList.contains('tokens')) ev.target.querySelector('.tok-in')?.focus();
