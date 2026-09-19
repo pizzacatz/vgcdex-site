@@ -14,7 +14,9 @@
   <meta name="twitter:card" content="summary">
 <script>/* resolve theme before first paint (GeorgiaPlayEvents convention: <html data-theme>) */
 (function(){var t=new URLSearchParams(location.search).get('theme');if(t!=='light'&&t!=='dark')t=null;if(t){try{localStorage.setItem('vgcdex-theme',t)}catch(e){}}if(!t){try{t=localStorage.getItem('vgcdex-theme')}catch(e){}}if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
-<link rel="icon" href="favicon.ico" sizes="48x48"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0d0d0d">
+<link rel="icon" href="favicon.ico" sizes="48x48"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest">
+  <!-- regulation stamped by deploy.sh; the dataset fetch starts here, before app.js is parsed -->
+  <script>window.VGCDEX_REG={"regulation": "M-C", "active_from": "2026-09-09", "active_to": "2026-12-02"};window.VGCDEX_DATA=fetch('data/m-c.json').then(function(r){return r.json()});</script><meta name="theme-color" content="#0d0d0d">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
 <style>
@@ -197,7 +199,7 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:24px;bac
 </style>
 </head>
 <body>
-<div id="app"><header class="top"><div class="wrap top-in"><span class="brand"><span class="word">VGC Dex</span></span></div></header><main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main></div>
-<script src="app.js?v=20260918012926"></script>
+<div id="app"></div>
+<script src="app.js?v=20260919034958"></script>
 </body>
 </html>

@@ -279,7 +279,8 @@ const ALL_ENTRIES = 'kind:species or kind:move or kind:ability or kind:item';
 const NAV_ICON = d => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
 // the four front-page links; the phone menu shows them with icons
 const NAV_LINKS = randomId => `<a href="?adv=1" data-nav>${NAV_ICON('M4 4h16v16H4z M4 9h16')}<span>Advanced Search</span></a><a href="?guide=1" data-nav>${NAV_ICON('M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14 M12 17.5v.01')}<span>Syntax Guide</span></a><a href="${qlink(ALL_ENTRIES)}" data-nav>${NAV_ICON('M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z')}<span>All Entries</span></a><a href="#" id="${randomId}">${NAV_ICON('M3 7h4l10 10h4 M3 17h4l3-3 M14 10l3-3h4 M18 4l3 3-3 3 M18 14l3 3-3 3')}<span>Random Mon</span></a>`;
-function home() { const reg = IDX.currentReg;
+const REGMETA = () => (IDX ? IDX.meta.regulation : (window.VGCDEX_REG || { regulation: '', active_from: '', active_to: '' }));
+function home() { const reg = REGMETA().regulation;
   return `<section class="wrap home"><div class="home-in"><h1 class="tagline"><b>VGC Dex</b> is a powerful <br class="tlbr"><span class="tl2"><b>Pokémon Champions</b> search</span></h1>
   <form class="homesearch" id="form"><span class="hicon">${ICON}</span><input id="q" type="search" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Search"><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>
   <nav class="homelinks">${NAV_LINKS('random2')}</nav>
@@ -301,7 +302,7 @@ function header(st) {
     <nav class="topnav"><a href="?adv=1" data-nav>Advanced</a><a href="?guide=1" data-nav>Syntax</a><a href="#" id="random">Random</a><span class="reg">${esc(IDX.meta.regulation.regulation)}</span><button id="theme" title="Toggle Theme" aria-label="Toggle theme">${NAV_ICON('M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 3v18 M12 7h3.5 M12 11h5 M12 15h4.5')}</button></nav>
   </div></header>`;
 }
-function footer() { const m = IDX.meta; return `<footer class="foot"><div class="wrap foot-col">
+function footer() { const m = { regulation: REGMETA() }; return `<footer class="foot"><div class="wrap foot-col">
   <div class="foot-brand"><b>VGC Dex</b><br>A regex search engine for Pokémon Champions.<br>Regulation ${esc(m.regulation.regulation)} · ${esc(m.regulation.active_from)} → ${esc(m.regulation.active_to)}<br><a class="gpe" href="https://georgiaplayevents.com/">Part of the GPE network of apps</a></div>
   <p class="foot-legal">VGC Dex is fan content. The literal and graphical information presented on this site about Pokémon, including images and symbols, is copyright Nintendo, Creatures Inc., GAME FREAK, The Pokémon Company, and The Pokémon Company International (TPCi). VGC Dex is not produced by, endorsed by, or affiliated with any of these companies.</p>
   <p class="foot-legal">Sprites via Bulbagarden Archives and Serebii. Dex data via Pokémon Showdown.</p>
@@ -743,10 +744,14 @@ function bindForm() {
 function rerenderRows(k, keepFocus) { const box = $('#' + k + '-rows'); if (!box) return; const active = document.activeElement; const idx = active && active.closest ? active.closest('[data-row]')?.dataset.i : null; const fld = active && active.dataset ? active.dataset.f : null; box.innerHTML = k === 'matchups' ? FS[k].map(matchRow).join('') : k === 'regs' ? FS[k].map(regRow).join('') : FS[k].map((r, i) => dupRow(k, r, i, k === 'stats' ? STAT_OPTS : MNUM_OPTS)).join(''); if (keepFocus && idx != null && fld) { const el = box.querySelector(`[data-row="${k}"][data-i="${idx}"] [data-f="${fld}"]`); if (el) { el.focus(); if (el.type === 'number' || el.type === 'text') { const L = el.value.length; try { el.setSelectionRange(L, L); } catch (e) {} } } } updatePreview(); }
 
 // ----- render + events -----
+// home page handlers: search box and Random Mon work as soon as the page paints
+function bindHome() { const f = $('#form'); if (f && !f.dataset.bound) { f.dataset.bound = '1'; f.addEventListener('submit', ev => { ev.preventDefault(); const v = $('#q').value.trim(); if (v) nav(qlink(v)); }); }
+  const r = $('#random2'); if (r && !r.dataset.bound) { r.dataset.bound = '1'; r.addEventListener('click', ev => { ev.preventDefault(); if (!IDX) return; const sp = IDX.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); } }
 function render() {
   const st = state();
+  if (!IDX) { if (isHome(st)) { app.innerHTML = `<main>${home()}</main>` + footer(); placeHome(); bindHome(); return; } return; }
   let body; if (st.detail) body = detail(st.detail); else if (st.guide) body = guide(); else if (st.q && !st.adv) body = results(st); else if (isHome(st)) body = home(); else { if (st.adv && st.q) { if (!FS || FS.src !== st.q) { FS = queryToForm(st.q); FS.src = st.q; FS.view = st.view; } } else if (!FS || FS.src) { FS = emptyForm(); } body = advForm(); }
-  app.innerHTML = (isHome(st) ? '' : header(st)) + `<main>${body}</main>` + footer(); sizeListCols(); placeHome(); sizeGuide();
+  app.innerHTML = (isHome(st) ? '' : header(st)) + `<main>${body}</main>` + footer(); sizeListCols(); placeHome(); sizeGuide(); LOADING_SHOWN = false;
   if (location.hash) { const tgt = document.getElementById(location.hash.slice(1)); if (tgt) setTimeout(() => tgt.scrollIntoView({ block: 'start' }), 0); }
   const SITE = 'VGC Dex Pokemon Champions Search'; document.title = st.detail ? `${IDX.ents.find(x => x.kind === st.detail.kind && x.slug === st.detail.slug)?.name || SITE} · VGC Dex` : st.q ? `${st.q} · VGC Dex` : SITE;
   bindForm();
@@ -754,6 +759,7 @@ function render() {
     qi.addEventListener('keydown', ev => { if (MENU.key !== 'main' || (MENU.menu && MENU.menu.hidden)) { if (ev.key === 'ArrowDown') { ev.preventDefault(); openMainMenu(qi); } return; } if (ev.key === 'ArrowDown') { ev.preventDefault(); moveHi(1); } else if (ev.key === 'ArrowUp') { ev.preventDefault(); moveHi(-1); } else if (ev.key === 'Escape') closeMenu(); else if (ev.key === 'Enter' && MENU.hi >= 0) { ev.preventDefault(); pickSub(qi, MENU.rows[MENU.hi][0]); } else if (ev.key === 'Tab' && MENU.hi >= 0) { ev.preventDefault(); pickSub(qi, MENU.rows[MENU.hi][0]); } });
     $('#mainmenu').addEventListener('mousedown', ev => ev.preventDefault());
     $('#mainmenu').addEventListener('click', ev => { const r = ev.target.closest('[data-pick]'); if (r) { ev.preventDefault(); pickSub(qi, r.dataset.pick); } }); }
+  bindHome();
   const f = $('#form'); if (f) f.addEventListener('submit', ev => { ev.preventDefault(); const v = $('#q').value.trim(); nav(v ? qlink(v) + (st.view !== 'grid' ? '&view=' + st.view : '') : ''); });
   const sort = $('#sort'); if (sort) sort.addEventListener('change', () => { let q = stripOrder(st.q); if (sort.value) q += ' order:' + sort.value; nav(qlink(q) + (st.view !== 'grid' ? '&view=' + st.view : '')); });
   const mb = $('#menubtn'); if (mb) mb.addEventListener('click', () => { const m = $('#topmenu'); m.hidden = !m.hidden; mb.setAttribute('aria-expanded', String(!m.hidden)); });
@@ -764,6 +770,9 @@ function render() {
 document.addEventListener('click', ev => { const a = ev.target.closest('a[data-nav]'); if (!a) return; const href = a.getAttribute('href'); if (!href || href.startsWith('#')) return; ev.preventDefault(); history.pushState('app', '', href === './' ? location.pathname : href); render(); if (!href.includes('#')) scrollTop0(); });
 window.addEventListener('popstate', render);
 window.VGCDEX = { search: q => search(IDX, q), parse, get idx() { return IDX; } };
-fetch('data/m-c.json').then(r => r.json()).then(d => { IDX = buildIndex(d); IDX_ITEM_CATS = d.item_categories.slice(); render(); })
-  .catch(err => { app.innerHTML = `<main class="wrap"><div class="notice error">Failed to load data: ${esc(err.message)}</div></main>`; });
+let LOADING_SHOWN = false;
+render(); // paints the home page at once; other routes wait for the data
+setTimeout(() => { if (!IDX && !document.querySelector('#app main')) { LOADING_SHOWN = true; app.innerHTML = `<main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main>`; } }, 200);
+(window.VGCDEX_DATA || fetch('data/m-c.json').then(r => r.json())).then(d => { IDX = buildIndex(d); IDX_ITEM_CATS = d.item_categories.slice(); render(); })
+  .catch(err => { if (!isHome(state())) app.innerHTML = `<main class="wrap"><div class="notice error">Failed to load data: ${esc(err.message)}</div></main>`; });
 })();
