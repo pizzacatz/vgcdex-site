@@ -37,7 +37,7 @@ h1,h2,h3{font-family:Montserrat,Inter,system-ui,sans-serif;letter-spacing:-.01em
 .top{background:var(--hdr-bg);color:var(--on-dark);border-bottom:1px solid var(--hdr-line);position:static;z-index:5}
 .top-in{display:flex;align-items:center;gap:16px;height:56px}
 .brand{display:flex;align-items:center;gap:8px;color:var(--on-dark);font-family:Montserrat,sans-serif;font-weight:800;font-size:1.15rem;white-space:nowrap}.brand:hover{text-decoration:none}
-.brand .icon svg,.hero-icon svg{display:block}.brand .icon svg{width:30px;height:30px}
+.brand .icon svg{display:block}.brand .icon svg{width:30px;height:30px}
 .brand .word{background:linear-gradient(45deg,var(--gpe-gold),var(--gpe-coral));-webkit-background-clip:text;background-clip:text;color:transparent}
 #app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}#app>main{flex:1 0 auto}.home{position:relative;max-width:960px;margin:0 auto;padding-block:max(24px,calc(33.333vh - var(--hh,270px) / 2)) 24px;padding-block-start:max(24px,calc(33.333dvh - var(--hh,270px) / 2));box-sizing:border-box;min-height:100vh;min-height:100dvh;text-align:center}
 .tagline{font-family:Inter,system-ui,sans-serif;font-weight:200;font-size:clamp(1.4rem,4.2vw,2rem);line-height:1.25;letter-spacing:-.01em;margin:0 0 22px;color:var(--text)}.tagline b{font-weight:800}
@@ -76,15 +76,6 @@ h1,h2,h3{font-family:Montserrat,Inter,system-ui,sans-serif;letter-spacing:-.01em
 .topmenu:not([hidden]){display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-basis:100%;border-top:1px solid var(--menu-divider);padding:12px 0 4px}
 .topmenu a,.topmenu button{border-radius:var(--r);display:flex;font-family:inherit;text-align:left;cursor:pointer;align-items:center;gap:8px;min-height:40px;padding:4px 8px;border:1px solid var(--menu-line);background:var(--gpe-surface);color:var(--on-dark);font-size:.9rem;font-weight:400;white-space:nowrap;overflow:hidden}.topmenu a:hover,.topmenu button:hover{text-decoration:none;border-color:var(--gpe-peach)}.topmenu svg{flex:none}}
 /* ---- home ---- */
-.hero{background:var(--gpe-black);color:var(--on-dark);text-align:center;padding:56px 0 48px;border-bottom:1px solid var(--gpe-surface)}
-.hero-icon{width:96px;height:96px;margin:0 auto 12px}.hero-icon svg{width:96px;height:96px}
-.hero-title{font-size:2.6rem;font-weight:800;background:linear-gradient(45deg,var(--gpe-gold),var(--gpe-coral));-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero-sub{color:var(--foot-text);margin:6px 0 22px;font-size:1.05rem}
-.herosearch{display:flex;max-width:720px;margin:0 auto}
-.herosearch input{flex:1;min-width:0;font:inherit;font-size:1.15rem;padding:12px 16px;border:1px solid var(--gpe-hover);border-radius:var(--r) 0 0 var(--r);background:var(--gpe-surface);color:var(--on-dark);font-family:var(--mono)}
-.herosearch input:focus{outline:2px solid var(--gpe-peach);outline-offset:-1px}
-.herosearch button{font:inherit;font-weight:600;padding:0 24px;border:0;border-radius:0 var(--r) var(--r) 0;background:var(--gpe-peach);color:var(--hero-btn-text);cursor:pointer}.herosearch button:hover{background:var(--hero-btn-hover)}
-.hero-links{margin:14px 0 0;color:var(--foot-text);font-size:.9rem}.hero-links a{color:var(--gpe-peach)}
 .examples{padding:32px 16px 40px}.examples h2,.group h2,.doc h2{font-size:1.1rem;margin:0 0 12px;font-weight:700}
 .ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
 .ex{display:block;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:8px 12px;color:var(--text);box-shadow:var(--shadow)}.ex:hover{border-color:var(--accent);text-decoration:none}
@@ -192,6 +183,8 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:24px;bac
 .scard .dtop{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center}.abeff{margin:6px 0 0;font-size:.85rem;line-height:1.9}.abeff b{margin-right:4px}.scard .via{margin-top:4px;text-align:center;font-size:.68rem;color:var(--muted);font-style:italic}.scard .via span{white-space:nowrap}.scard .via span+span::before{content:' · '}.matchline.via .chip{font-style:italic}.scard .art{width:96px;height:96px;display:grid;place-items:center;position:relative}.scard .art img{width:96px;height:96px;image-rendering:auto}
 .scard.icard .dtop{grid-template-columns:96px var(--icat-w,auto)}.icard .icats{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;min-height:var(--icat-h,auto)}.icard .icats .chip{white-space:nowrap}.badge.megab{background:var(--gpe-black);color:var(--gpe-gold);border:0;font-size:.58rem;font-weight:800;letter-spacing:.06em;padding:0 4px}.newreg,.newpill{text-transform:uppercase}.newpill{font-size:.6rem;letter-spacing:.06em}.scard .newreg{position:absolute;bottom:-4px;left:-4px;font-size:.6rem;font-weight:800;letter-spacing:.06em;padding:0 4px;border-radius:var(--r);background:var(--accent);color:var(--accent-contrast);white-space:nowrap}
 .scard .newreg.banned{background:var(--err-line);color:var(--on-dark)}
+/* under 360px the card is too narrow for the full badge: "NEW IN M-C" -> "NEW" (sweep item 5) */
+@media (max-width:359px){.scard .newreg .nr-r{display:none}}
 .scard .mega{position:absolute;top:-4px;left:-4px;font-size:.58rem;font-weight:800;letter-spacing:.06em;padding:0 4px;border-radius:var(--r);background:var(--gpe-black);color:var(--gpe-gold)}
 .scard table{border-collapse:collapse;width:auto;justify-self:start;font-size:.74rem;line-height:1}.scard td{padding:0 0}.scard td:first-child{color:var(--muted);padding-right:8px}.scard td:last-child{text-align:right;font-family:var(--mono);font-weight:600;min-width:3ch}
 .scard .nm{font-weight:600;font-size:.92rem;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;contain:inline-size;text-align:center}.scard .chips{margin-top:4px;contain:inline-size;justify-content:center}
@@ -208,6 +201,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:24px;bac
 </head>
 <body>
 <div id="app"></div>
-<script src="app.js?v=20260921035607"></script>
+<script src="app.js?v=20260921040451"></script>
 </body>
 </html>
