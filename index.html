@@ -49,13 +49,13 @@ h1,h2,h3{font-family:Montserrat,Inter,system-ui,sans-serif;letter-spacing:-.01em
 .homelinks{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px}
 .homelinks a{display:inline-block;padding:4px 8px;line-height:1.3;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--text);font-weight:300;font-size:.92rem;box-shadow:var(--shadow)}
 .homelinks a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
-.hometeam{--gap:235px;--art:200px;position:absolute;left:50%;bottom:0;width:0;height:var(--art);user-select:none}
+.hometeam{--gap:196px;--art:200px;position:absolute;left:50%;bottom:0;width:0;height:var(--art);user-select:none}
 .teamart{position:absolute;bottom:0;left:0;display:block;transform:translate(calc(var(--x) * var(--gap) - 50%), calc(var(--y) + var(--lift, 0px))) rotate(var(--rot)) scale(var(--sc, 1));transform-origin:50% 100%;transition:transform 140ms ease-out,filter 140ms ease-out;filter:drop-shadow(0 4px 10px rgb(0 0 0/.28))}
 .teamart.back{z-index:1}.teamart.front{z-index:2}
 .teamart img{display:block;height:var(--art);width:auto}.teamart.back img{height:calc(var(--art) * .93)}
 .teamart:hover,.teamart:focus-visible,.teamart:active{--lift:-26px;--sc:1.05;filter:drop-shadow(0 14px 22px rgb(0 0 0/.38))}
 .teamart:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:var(--r)}
-@media (max-width:700px),(max-height:700px){.hometeam{--gap:132px;--art:125px}.teamart:hover,.teamart:focus-visible,.teamart:active{--lift:-18px;--sc:1.06}}
+@media (max-width:700px),(max-height:700px){.hometeam{--gap:110px;--art:125px}.teamart:hover,.teamart:focus-visible,.teamart:active{--lift:-18px;--sc:1.06}}
 @media (prefers-reduced-motion:reduce){.teamart{transition:none}}
 .homenew{margin:26px 0 0;font-size:.95rem}.homenew a{color:var(--text);font-weight:300}.homenew a:hover{color:var(--accent);text-decoration:none}
 .newpill{display:inline-block;margin-right:8px;padding:0 4px;border-radius:var(--r);background:var(--accent);color:var(--accent-contrast);font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;vertical-align:2px}
@@ -208,6 +208,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:24px;bac
 </head>
 <body>
 <div id="app"></div>
-<script src="app.js?v=20260921033914"></script>
+<script src="app.js?v=20260921034254"></script>
 </body>
 </html>
