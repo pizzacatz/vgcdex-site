@@ -282,11 +282,17 @@ const NAV_LINKS = randomId => `<a href="?adv=1" data-nav>${NAV_ICON('M4 4h16v16H
 // Winning team of the latest regional championship, drawn across the bottom of the home
 // page. To swap: change this list and drop the matching WebP files in prototype/art/
 // (PokeAPI official artwork, trimmed and resized; see prototype/README.md).
+// row: back (3) or front (3); x is in units of the spacing, y in px below the baseline, rot in degrees
 const HOME_TEAM = [
-  { file: 'excadrill', w: 526 }, { file: 'salamence-mega', w: 642 }, { file: 'tyranitar-mega', w: 454 },
-  { file: 'indeedee-male', w: 251 }, { file: 'corviknight', w: 336 }, { file: 'sneasler', w: 300 },
+  { file: 'excadrill', slug: 'excadrill', w: 526, row: 'back', x: -1.30, y: 14, rot: -6 },
+  { file: 'salamence-mega', slug: 'salamencemega', w: 642, row: 'back', x: 0, y: 0, rot: 0 },
+  { file: 'tyranitar-mega', slug: 'tyranitarmega', w: 454, row: 'front', x: -0.68, y: 40, rot: -3 },
+  { file: 'indeedee-male', slug: 'indeedee', w: 251, row: 'front', x: 0.70, y: 38, rot: 4 },
+  { file: 'corviknight', slug: 'corviknight', w: 336, row: 'back', x: 1.30, y: 14, rot: 6 },
+  { file: 'sneasler', slug: 'sneasler', w: 300, row: 'front', x: 0.02, y: 48, rot: 1 },
 ];
-const homeTeam = () => `<div class="hometeam" aria-hidden="true">${HOME_TEAM.map(t => `<img src="art/${t.file}.webp" alt="" width="${t.w}" height="420" decoding="async">`).join('')}</div>`;
+function homeTeam() { const byName = {}; if (IDX) for (const e of IDX.ents) if (e.kind === 'species') byName[e.slug] = e.name;
+  return `<div class="hometeam">${HOME_TEAM.map(t => { const name = byName[t.slug] || ''; return `<a class="teamart ${t.row}" href="?species=${encodeURIComponent(t.slug)}" data-nav style="--x:${t.x};--y:${t.y}px;--rot:${t.rot}deg"><img src="art/${t.file}.webp" alt="${esc(name)}" width="${t.w}" height="420" decoding="async"></a>`; }).join('')}</div>`; }
 const REGMETA = () => (IDX ? IDX.meta.regulation : (window.VGCDEX_REG || { regulation: '', active_from: '', active_to: '' }));
 function home() { const reg = REGMETA().regulation;
   return `<section class="wrap home"><div class="home-in"><h1 class="tagline"><b>VGC Dex</b> is a powerful <br class="tlbr"><span class="tl2"><b>Pokémon Champions</b> search</span></h1>
