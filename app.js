@@ -286,10 +286,10 @@ const NAV_LINKS = randomId => `<a href="?adv=1" data-nav>${NAV_ICON('M4 4h16v16H
 const HOME_TEAM = [
   { file: 'excadrill', slug: 'excadrill', w: 526, row: 'back', x: -1.24, y: 14, rot: -6 },
   { file: 'salamence-mega', slug: 'salamencemega', w: 642, row: 'back', x: -0.14, y: 0, rot: -1 },
-  { file: 'tyranitar-mega', slug: 'tyranitarmega', w: 454, row: 'front', x: -0.69, y: 54, rot: -3 },
-  { file: 'indeedee-male', slug: 'indeedee', w: 251, row: 'front', x: 0.41, y: 48, rot: 2 },
+  { file: 'tyranitar-mega', slug: 'tyranitarmega', w: 454, row: 'front', x: -0.69, y: 66, rot: -3 },
+  { file: 'indeedee-male', slug: 'indeedee', w: 251, row: 'front', x: 0.41, y: 60, rot: 2 },
   { file: 'corviknight', slug: 'corviknight', w: 336, row: 'back', x: 0.96, y: 10, rot: 4 },
-  { file: 'sneasler', slug: 'sneasler', w: 300, row: 'front', x: 1.46, y: 58, rot: 6 },
+  { file: 'sneasler', slug: 'sneasler', w: 300, row: 'front', x: 1.46, y: 70, rot: 6 },
 ];
 function homeTeam() { const byName = {}; if (IDX) for (const e of IDX.ents) if (e.kind === 'species') byName[e.slug] = e.name;
   return `<div class="hometeam">${HOME_TEAM.map(t => { const name = byName[t.slug] || ''; return `<a class="teamart ${t.row}" href="?species=${encodeURIComponent(t.slug)}" data-nav style="--x:${t.x};--y:${t.y}px;--rot:${t.rot}deg"><img src="art/${t.file}.webp" alt="${esc(name)}" width="${t.w}" height="420" decoding="async"></a>`; }).join('')}</div>`; }
