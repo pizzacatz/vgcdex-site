@@ -279,12 +279,20 @@ const ALL_ENTRIES = 'kind:species or kind:move or kind:ability or kind:item';
 const NAV_ICON = d => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
 // the four front-page links; the phone menu shows them with icons
 const NAV_LINKS = randomId => `<a href="?adv=1" data-nav>${NAV_ICON('M4 4h16v16H4z M4 9h16')}<span>Advanced Search</span></a><a href="?guide=1" data-nav>${NAV_ICON('M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14 M12 17.5v.01')}<span>Syntax Guide</span></a><a href="${qlink(ALL_ENTRIES)}" data-nav>${NAV_ICON('M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z')}<span>All Entries</span></a><a href="#" id="${randomId}">${NAV_ICON('M3 7h4l10 10h4 M3 17h4l3-3 M14 10l3-3h4 M18 4l3 3-3 3 M18 14l3 3-3 3')}<span>Random Mon</span></a>`;
+// Winning team of the latest regional championship, drawn across the bottom of the home
+// page. To swap: change this list and drop the matching WebP files in prototype/art/
+// (PokeAPI official artwork, trimmed and resized; see prototype/README.md).
+const HOME_TEAM = [
+  { file: 'excadrill', w: 526 }, { file: 'salamence-mega', w: 642 }, { file: 'tyranitar-mega', w: 454 },
+  { file: 'indeedee-male', w: 251 }, { file: 'corviknight', w: 336 }, { file: 'sneasler', w: 300 },
+];
+const homeTeam = () => `<div class="hometeam" aria-hidden="true">${HOME_TEAM.map(t => `<img src="art/${t.file}.webp" alt="" width="${t.w}" height="420" decoding="async">`).join('')}</div>`;
 const REGMETA = () => (IDX ? IDX.meta.regulation : (window.VGCDEX_REG || { regulation: '', active_from: '', active_to: '' }));
 function home() { const reg = REGMETA().regulation;
   return `<section class="wrap home"><div class="home-in"><h1 class="tagline"><b>VGC Dex</b> is a powerful <br class="tlbr"><span class="tl2"><b>Pokémon Champions</b> search</span></h1>
   <form class="homesearch" id="form"><span class="hicon">${ICON}</span><input id="q" type="search" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Search"><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>
   <nav class="homelinks">${NAV_LINKS('random2')}</nav>
-  <p class="homenew"><a href="${qlink('new:' + reg.toLowerCase())}" data-nav><span class="newpill">New</span>Regulation ${esc(reg)}</a></p></div></section>`; }
+  <p class="homenew"><a href="${qlink('new:' + reg.toLowerCase())}" data-nav><span class="newpill">New</span>Regulation ${esc(reg)}</a></p></div>${homeTeam()}</section>`; }
 // the home block's middle sits a third of the way down the screen; its height depends on how the tagline wraps
 // syntax guide: every table's code column is as wide as the widest code entry on the page
 function sizeGuide() { const cells = [...document.querySelectorAll('table.guide td:first-child')]; if (!cells.length) return;
@@ -305,7 +313,7 @@ function header(st) {
 function footer() { const m = { regulation: REGMETA() }; return `<footer class="foot"><div class="wrap foot-col">
   <div class="foot-brand"><b>VGC Dex</b><br>A regex search engine for Pokémon Champions.<br>Regulation ${esc(m.regulation.regulation)} · ${esc(m.regulation.active_from)} → ${esc(m.regulation.active_to)}<br><a class="gpe" href="https://georgiaplayevents.com/">Part of the GPE network of apps</a></div>
   <p class="foot-legal">VGC Dex is fan content. The literal and graphical information presented on this site about Pokémon, including images and symbols, is copyright Nintendo, Creatures Inc., GAME FREAK, The Pokémon Company, and The Pokémon Company International (TPCi). VGC Dex is not produced by, endorsed by, or affiliated with any of these companies.</p>
-  <p class="foot-legal">Sprites via Bulbagarden Archives and Serebii. Dex data via Pokémon Showdown.</p>
+  <p class="foot-legal">Sprites via Bulbagarden Archives and Serebii. Home page artwork via PokéAPI. Dex data via Pokémon Showdown.</p>
 </div></footer>`; }
 
 // ----- home -----
