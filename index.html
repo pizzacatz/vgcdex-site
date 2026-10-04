@@ -189,6 +189,14 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:24px;bac
 .scard table{border-collapse:collapse;width:auto;justify-self:start;font-size:.74rem;line-height:1}.scard td{padding:0 0}.scard td:first-child{color:var(--muted);padding-right:8px}.scard td:last-child{text-align:right;font-family:var(--mono);font-weight:600;min-width:3ch}
 .scard .nm{font-weight:600;font-size:.92rem;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;contain:inline-size;text-align:center}.scard .chips{margin-top:4px;contain:inline-size;justify-content:center}
 @media (max-width:700px){.icard .icats .chip{font-size:.56rem;padding:0 4px;letter-spacing:0}.scard.icard .dtop{grid-template-columns:minmax(0,1fr) var(--icat-w,auto)}.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scard{width:auto;padding:8px}.scard .dtop{grid-template-columns:minmax(0,1fr) auto;gap:8px}.scard .art{width:100%;height:auto;aspect-ratio:1;max-width:96px;justify-self:center}.scard .art img{width:100%;height:100%;max-width:96px}.scard table{font-size:.7rem}.scard td:first-child{padding-right:4px}}
+/* Results fill the list container; auto-fill keeps short result sets card-sized. */
+.group .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));align-items:stretch}
+.group .sgrid>.scard{width:auto;min-width:0}
+.group .scard .dtop{grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.group .scard .art{width:100%;max-width:96px;height:auto;aspect-ratio:1;justify-self:center}
+.group .scard .art img{width:100%;height:100%;max-width:96px}
+@media (min-width:701px){.group .scard.icard .dtop{grid-template-columns:minmax(0,1fr)}.group .icard .icats{align-items:center}}
+@media (max-width:700px){.group .sgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.group .scard.icard .dtop{grid-template-columns:minmax(0,1fr) var(--icat-w,auto)}}
 /* ---- footer ---- */
 .foot{background:var(--gpe-black);color:var(--foot-text);font-size:.8rem;padding:24px 0;margin-top:30px;border-top:1px solid var(--gpe-surface)}.foot b{color:var(--on-dark)}.foot a.gpe,.foot a.gpe:hover{color:inherit;font:inherit;text-decoration:underline}.foot code{color:var(--gpe-gold)}
 .foot-col{max-width:760px;color:var(--foot-dim);font-size:.7rem;line-height:1.5}.foot-col b{color:var(--foot-dim)}.foot-legal{margin:14px 0 0}
@@ -201,6 +209,6 @@ select.form-input{appearance:none;-webkit-appearance:none;padding-right:24px;bac
 </head>
 <body>
 <div id="app"></div>
-<script src="app.js?v=20261004230431"></script>
+<script src="app.js?v=20261004235200"></script>
 </body>
 </html>
