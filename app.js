@@ -252,6 +252,100 @@ function search(idx, q) {
   const abTerms = []; if (abMatch) (function walk(n, neg) { if (!n) return; if (n.type === 'term' && !neg && F[n.field] && EFF_BUCKET[F[n.field].name]) abTerms.push(n); else if (n.type === 'not') walk(n.node, !neg); else if (n.items) n.items.forEach(x => walk(x, neg)); })(ast);
   return { scope: [...scope], results: out, ast, order, dir, subs, abTerms, idx };
 }
+// ---------- plain-language query explanation ----------
+const SUMMARY_KINDS = { species: ['Species', 'Species'], move: ['Move', 'Moves'], ability: ['Ability', 'Abilities'], item: ['Item', 'Items'] };
+const SUMMARY_NUMBERS = { hp: 'HP', atk: 'attack', def: 'defense', spa: 'special attack', spd: 'special defense', spe: 'speed', total: 'stats total', dex: 'National Dex number', kg: 'weight', abilities: 'ability count', bp: 'base power', acc: 'accuracy', pp: 'PP', prio: 'priority' };
+const SUMMARY_OPS = { '=': 'equal to', ':': 'equal to', '!=': 'not equal to', '<': 'less than', '<=': 'less than or equal to', '>': 'greater than', '>=': 'greater than or equal to' };
+const summaryList = (parts, join = 'and') => parts.length < 3 ? parts.join(` ${join} `) : parts.slice(0, -1).join(', ') + `, ${join} ` + parts[parts.length - 1];
+const summaryCap = s => s.charAt(0).toUpperCase() + s.slice(1);
+function explainQuery(node, { single = false, omitKind = null, abMatch = false, idx = null } = {}) {
+  if (!node) return '';
+  const be = single ? 'is' : 'are', have = single ? 'has' : 'have', learn = single ? 'learns' : 'learn';
+  const opts = { single, abMatch, idx };
+  if (node.type === 'and' || node.type === 'or') {
+    const parts = node.items.map(n => ({ n, text: explainQuery(n, { ...opts, omitKind: node.type === 'and' ? omitKind : null }) }));
+    // Directives evaluate to true even inside OR. An empty description means true.
+    if (node.type === 'or' && parts.some(p => !p.text)) return '';
+    const kept = parts.filter(p => p.text);
+    return summaryList(kept.map(({n, text}) => kept.length > 1 && (n.type === 'and' || n.type === 'or') ? `(${text})` : text), node.type === 'or' ? 'or' : 'and');
+  }
+  if (node.type === 'not') {
+    const text = explainQuery(node.node, opts);
+    if (!text) return single ? 'matches no entries' : 'match no entries';
+    if (node.node.type === 'and' || node.node.type === 'or' || node.node.type === 'not') return `${single ? 'does' : 'do'} not satisfy (${text})`;
+    if (text.startsWith(be + ' ')) return text.replace(be + ' ', be + ' not ');
+    if (text.startsWith(have + ' ')) return `${single ? 'does' : 'do'} not have ${text.slice(have.length + 1)}`;
+    if (text.startsWith(learn + ' ')) return `${single ? 'does' : 'do'} not learn ${text.slice(learn.length + 1)}`;
+    return `${single ? 'does' : 'do'} not satisfy (${text})`;
+  }
+  if (node.type === 'word') return `${have} a name or alias containing “${node.v}”`;
+  const f = F[node.field], key = f.name, value = node.vn || node.val;
+  if (f.type === 'directive') return '';
+  const kind = node.kindsel || (KINDS.includes(node.isv) ? node.isv : null);
+  if (kind) return kind === omitKind ? '' : `${be} ${SUMMARY_KINDS[kind][single ? 0 : 1]}`;
+  if (node.sub) {
+    const inner = explainQuery(node.sub, {single: true, abMatch, idx, omitKind: node.subKind});
+    const relation = key === 'm' ? `${learn} a move` : key === 'a' ? `${have} an ability` : `${be} learned by a Pokémon`;
+    return relation + (inner ? ` that (${inner})` : '');
+  }
+  if (f.type === 'num') return `${have} ${SUMMARY_NUMBERS[key]} ${SUMMARY_OPS[node.op]} ${node.num}${key === 'kg' ? ' kg' : ''}`;
+  const negative = node.op === '!=';
+  if (key === 't') {
+    if (node.exact) return `${have} exactly ${node.exact.length === 1 ? 'the type' : 'the types'} ${summaryList(node.exact.map(summaryCap))}`;
+    return `${be}${negative ? ' not' : ''} ${summaryCap(value)} type`;
+  }
+  if (EFF_BUCKET[key]) {
+    const relation = {weak:'weak to', xweak:'extremely weak to', resists:'resistant to', xresists:'doubly resistant to', immune:'immune to'}[key];
+    return `${be}${negative ? ' not' : ''} ${relation} ${summaryCap(value)}${abMatch ? ' (with abilities applied)' : ''}`;
+  }
+  if (f.values === 'regs') {
+    const relation = {r:'legal in', new:'introduced in', banned:'banned in', restricted:'restricted in', removed:'removed in'}[key];
+    return `${be}${negative ? ' not' : ''} ${relation} Regulation ${value}`;
+  }
+  if (f.type === 'is') {
+    // is: flags are positive in the existing evaluator, including is!= values.
+    return ({mega:`${be} ${single ? "a Mega Evolution" : "Mega Evolutions"}`, spread:`${have} a spread target`, variable:`${have} variable power`, consumable:`${be} consumable`, held:`${be} ${single ? "a held item" : "held items"}`})[node.isv];
+  }
+  if (key === 'cat') return `${have} ${negative ? 'no' : 'the'} ${summaryCap(node.val)} category`;
+  if (key === 'target') {
+    const label = value === 'spread' ? 'multiple Pokémon' : value === 'single' ? 'a single Pokémon' : Object.entries(TARGET_LABEL).find(([id]) => id.toLowerCase() === value)?.[1] || node.val;
+    return `${have} ${negative ? 'no' : 'a'} target of “${label}”`;
+  }
+  if (key === 'flag') return `${have} ${negative ? 'no' : 'the'} property “${MECH_LABEL[value] || CLASS_BY_FLAG[value] || node.val}”`;
+  const textValue = `“${node.val}”`;
+  const match = node.re ? `matching /${node.val}/` : `${node.op === '=' ? 'equal to' : negative ? 'not equal to' : 'containing'} ${textValue}`;
+  if (key === 'name') return `${have} a name ${match}`;
+  if (key === 'o') return `${have} description text ${match}`;
+  if (key === 'class') return `${have} ${negative && !node.re ? 'no classification equal to ' + textValue : 'a classification ' + match}`;
+  if (key === 'for') return `${be}${negative ? ' not' : ''} Mega Stones for ${node.val}`;
+  if (key === 'base') return `${have} ${negative && !node.re ? 'no base species equal to ' + textValue : 'a base species ' + match}`;
+  if (key === 'stone') return `${have} ${negative && !node.re ? 'no Mega Stone equal to ' + textValue : 'a Mega Stone ' + match}`;
+  const relation = key === 'm' ? learn : key === 'a' ? `${have} the ability` : `${be} learned by`;
+  if (node.re) {
+    const noun = key === 'm' ? 'a move' : key === 'a' ? 'an ability' : 'a Pokémon';
+    const prefix = key === 'm' ? learn : key === 'a' ? have : `${be} learned by`;
+    return `${prefix} ${noun} whose name matches /${node.val}/`;
+  }
+  const catalog = key === 'm' ? idx?.moveBySlug : key === 'a' ? idx?.abilityBySlug : idx?.speciesBySlug;
+  const names = [...new Set(Object.values(catalog || {}).map(e => e.name).filter(name => norm(name).includes(node.vn) || compact(name).includes(node.vc)))];
+  const exactName = names.length === 1 && compact(names[0]) === node.vc ? names[0] : null;
+  // Short named relationships for full names; fragments must still read as text searches.
+  if (!exactName && node.op === ':') {
+    const noun = key === 'm' ? 'a move' : key === 'a' ? 'an ability' : 'a Pokémon';
+    const prefix = key === 'm' ? learn : key === 'a' ? have : `${be} learned by`;
+    return `${prefix} ${noun} whose name contains ${textValue}`;
+  }
+  const name = exactName || node.val;
+  if (negative) return key === 'm' ? `${single ? 'does' : 'do'} not learn ${name}` : key === 'a' ? `${single ? 'does' : 'do'} not have the ability ${name}` : `${be} not learned by ${name}`;
+  return `${relation} ${name}`;
+}
+function resultSummary(r) {
+  const count = r.results.length, kind = r.scope.length === 1 ? r.scope[0] : null;
+  const noun = kind ? SUMMARY_KINDS[kind][count === 1 ? 0 : 1] : count === 1 ? 'result' : 'results';
+  const description = explainQuery(r.ast, {single:count === 1, omitKind:kind, abMatch:!!r.idx?.abMatch, idx:r.idx});
+  return `${count} ${noun}${description ? ' that ' + description : ''}`;
+}
+
 // Abilities that made a matchup term hold when the chart alone did not (shown as "via Levitate" on cards).
 function abilityMatches(abTerms, e, idx) { const out = []; if (e.kind !== 'species') return out; for (const n of abTerms) { const b = EFF_BUCKET[F[n.field].name], v = n.vn; if (b(e.eff[v])) continue; for (const sl of e.abilitySlugs) { const ab = idx.abilityBySlug[sl]; if (ab && b(effWith(e, v, sl, idx)) && !out.includes(ab)) out.push(ab); } } return out; }
 function subMatches(subs, e, idx) { const out = []; for (const n of subs) { if (F[n.field].name === 'a' && e.kind === 'species') { for (const sl of e.abilitySlugs) { const ab = idx.abilityBySlug[sl]; if (ab && evalNode(n.sub, ab, idx) && !out.includes(ab)) out.push(ab); } continue; } if (F[n.field].name === 'm' && e.kind === 'species') for (const sl of e.learnset) { const mv = idx.moveBySlug[sl]; if (mv && evalNode(n.sub, mv, idx) && !out.includes(mv)) out.push(mv); } else if (F[n.field].name === 'lb' && e.kind === 'move') for (const sp of (idx.learnedBy[e.slug] || [])) if (evalNode(n.sub, sp, idx) && !out.includes(sp)) out.push(sp); } return out; }
@@ -378,7 +472,7 @@ function results(st) {
   const ignored = IGNORED.length ? `<div class="ignored">${ignoredLine(IGNORED)}</div>` : ''; IGNORED = []; SORT = { order: r.order || '', dir: r.dir || '', link: (k, d) => qlink(`${stripOrder(q)} order:${k}${d ? ' dir:' + d : ''}`.trim()) + (st.view !== 'grid' ? '&view=' + st.view : '') };
   const scopeTxt = r.scope.length === 4 ? 'all kinds' : r.scope.map(k => KIND_LABEL[k]).join(', ');
   const curOrder = r.order || '';
-  const controls = `<div class="controls"><div class="wrap controls-in"><div class="count"><b>${r.results.length}</b> result${r.results.length === 1 ? '' : 's'} <span class="muted">· ${scopeTxt}</span> <a class="editadv" href="${qlink(q).replace('?q=', '?adv=1&q=')}${st.view === 'list' ? '&view=list' : ''}" data-nav>Edit in Advanced Search</a>${withoutKind(q) ? `<a class="editadv" href="${qlink(withoutKind(q))}" data-nav>Search All Kinds</a>` : ''}${ignored}</div>
+  const controls = `<div class="controls"><div class="wrap controls-in"><div class="count"><span class="result-summary">${esc(resultSummary(r))}</span> <a class="editadv" href="${qlink(q).replace('?q=', '?adv=1&q=')}${st.view === 'list' ? '&view=list' : ''}" data-nav>Edit in Advanced Search</a>${withoutKind(q) ? `<a class="editadv" href="${qlink(withoutKind(q))}" data-nav>Search All Kinds</a>` : ''}${ignored}</div>
     <div class="ctl"><label>View</label><span class="seg"><a href="${setParam('view', 'grid')}" data-nav class="${st.view === 'grid' ? 'on' : ''}">Grid</a><a href="${setParam('view', 'list')}" data-nav class="${st.view === 'list' ? 'on' : ''}">List</a></span>
     <label>Sort</label><select id="sort">${sortsFor(r.scope, curOrder).map(([v, l]) => `<option value="${v}" ${v === curOrder ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div></div>`;
   if (!r.results.length) return controls + `<section class="wrap"><div class="notice zero"><b>No results.</b> The query parsed fine and was searched across ${scopeTxt}.<ul><li>Bare words match <b>names</b> only. Use <code>o:</code> for description text.</li><li>Stats are the in-game values, not base stats.</li><li><code>m:</code> wants a move name, e.g. <code>m:"iron head"</code>.</li></ul><p><a href="${qlink(q).replace('?q=', '?adv=1&q=')}" data-nav>Edit in Advanced Search</a>${withoutKind(q) ? ` · <a href="${qlink(withoutKind(q))}" data-nav>Search all kinds for these terms</a>` : ''}</p></div></section>`;
