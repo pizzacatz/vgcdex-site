@@ -2,7 +2,7 @@
 """Home page team (D-85, D-95): the Masters winner of the latest official VGC Regional Championship.
 
 Runs in the public site checkout (GitHub Action, twice a week; deploy.sh copies it there):
-  1. Pokedata (pokedata.ovh) lists official events; take the newest finished
+  1. Pokedata (pokedata.ovh apiv3) lists official events; take the newest finished
      "Regional Championships" with team lists whose winner's six Pokémon all resolve to
      Champions entries in data/m-c.json (a Pokémon holding its Mega Stone is drawn as the Mega).
   2. If that event is newer than team/home-team.json, fetch PokéAPI official artwork, trim it,
@@ -72,7 +72,8 @@ def resolve(mon):
     return {'slug': row['slug'], 'name': row['name'], 'dex': row['national_dex']}
 
 
-events = json.loads(fetch('https://pokedata.ovh/apiv2/tournaments'))['vg']['data']
+# apiv3: the apiv2 list stopped at Louisville and missed Nice, Puebla and Gdansk (owner, 2026-11-05)
+events = json.loads(fetch('https://www.pokedata.ovh/apiv3/vg/tournaments'))['vg']['data']
 regionals = [t for t in events if 'Regional Championships' in t['name'] and t.get('tournamentStatus') == 'finished'
              and (t.get('decklists') or 0) > 0 and (t.get('winners') or {}).get('masters')]
 regionals.sort(key=lambda t: (t['date']['end'], int((t.get('players') or {}).get('masters') or 0)), reverse=True)
@@ -81,9 +82,10 @@ current = json.load(open(TEAM_JSON)) if os.path.exists(TEAM_JSON) else None
 pick = None
 for t in regionals[:6]:
     if current and (t['date']['end'], t['id']) <= (current['date'], current['event_id']): break  # nothing newer
-    data = json.loads(fetch(f"https://pokedata.ovh/api/complete/?id={int(t['id'])}&division=masters&game=vg"))
-    winner = next((p for p in data['data']['masters'] if p.get('placing') == 1), None)
-    deck = (winner or {}).get('decklist') or []
+    data = json.loads(fetch(f"https://www.pokedata.ovh/apiv3/vg/id/{t['id']}"))
+    masters = next((d['data'] for d in data.get('tournament_data') or [] if d.get('division') == 'masters'), [])
+    winner = next((p for p in masters if p.get('placing') == 1), None)
+    deck = (winner or {}).get('teamlist') or (winner or {}).get('decklist') or []
     team = [resolve(x) for x in deck]
     if len(team) != 6 or not all(team):
         print(f"skip {t['name']}: winner's team does not resolve to six Champions entries: {[x['name'] for x in deck]}")
