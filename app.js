@@ -26,7 +26,7 @@ function buildIndex(d) {
     const row = { kind: 'species', slug: s.slug, name: s.name, raw: s, is_mega: false, types: s.types,
       abilities: s.abilities.map(a => a.name), abilitySlugs: s.abilities.map(a => a.slug), learnset: s.learnset || [],
       ps: s.presented_stats, total: STATS.reduce((n, k) => n + s.presented_stats[k], 0),
-      dex: s.national_dex, kg: s.weight_kg, sprite: s.sprites && s.sprites.menu, art: s.sprites && s.sprites.front, eff: effOf(s.types), reg: s.introduced_in || regs[0], legality: s.legality || {} };
+      dex: s.national_dex, kg: s.weight_kg, sprite: s.sprites && s.sprites.menu, art: s.sprites && s.sprites.front, eff: effOf(s.types), reg: d.national ? null : s.introduced_in || regs[0], legality: s.legality || {} };
     speciesBySlug[s.slug] = row; ents.push(row);
   }
   for (const m of d.mega_evolutions) {
@@ -34,16 +34,17 @@ function buildIndex(d) {
     ents.push({ kind: 'species', slug: m.slug, name: m.name, raw: m, is_mega: true, base_slug: m.base_slug, stone: m.mega_stone,
       types: m.types, abilities: [m.ability.name], abilitySlugs: [m.ability.slug], learnset: base ? base.learnset : [],
       ps: m.presented_stats, total: STATS.reduce((n, k) => n + m.presented_stats[k], 0),
-      dex: base ? base.dex : null, kg: m.weight_kg, sprite: m.sprites && m.sprites.menu, art: m.sprites && m.sprites.front, eff: effOf(m.types), reg: m.introduced_in || regs[0], legality: m.legality || {} });
+      dex: base ? base.dex : null, kg: m.weight_kg, sprite: m.sprites && m.sprites.menu, art: m.sprites && m.sprites.front, eff: effOf(m.types), reg: d.national ? null : m.introduced_in || regs[0], legality: m.legality || {} });
   }
   const abilityBySlug = {};
   const moveBySlug = {};
   for (const m of d.moves) { const r = { kind: 'move', slug: m.slug, name: m.name, raw: m, type: m.type, cat: m.category, bp: m.power || 0,
     acc: m.accuracy === true || m.accuracy == null ? null : m.accuracy, pp: m.pp, prio: m.priority, target: m.target, flags: m.flags || [],
-    classes: m.classifications || [], variable: !!m.variable_power, text: (m.short_desc || '') + ' ' + (m.long_desc || ''), reg: m.introduced_in || regs[0], legality: m.legality || {} }; moveBySlug[m.slug] = r; ents.push(r); }
-  for (const a of d.abilities) { const r = { kind: 'ability', slug: a.slug, name: a.name, raw: a, text: (a.short_desc || '') + ' ' + (a.long_desc || ''), reg: a.introduced_in || regs[0], legality: a.legality || {} }; abilityBySlug[a.slug] = r; ents.push(r); }
-  for (const i of d.items) ents.push({ kind: 'item', slug: i.slug, name: i.name, raw: i, cats: i.categories || [], sprite: i.sprites && i.sprites.item, reg: i.introduced_in || regs[0], legality: i.legality || {},
+    classes: m.classifications || [], variable: !!m.variable_power, text: (m.short_desc || '') + ' ' + (m.long_desc || ''), reg: d.national ? null : m.introduced_in || regs[0], legality: m.legality || {} }; moveBySlug[m.slug] = r; ents.push(r); }
+  for (const a of d.abilities) { const r = { kind: 'ability', slug: a.slug, name: a.name, raw: a, text: (a.short_desc || '') + ' ' + (a.long_desc || ''), reg: d.national ? null : a.introduced_in || regs[0], legality: a.legality || {} }; abilityBySlug[a.slug] = r; ents.push(r); }
+  for (const i of d.items) ents.push({ kind: 'item', slug: i.slug, name: i.name, raw: i, cats: i.categories || [], sprite: i.sprites && i.sprites.item, reg: d.national ? null : i.introduced_in || regs[0], legality: i.legality || {},
     text: (i.description || '') + ' ' + (i.short_desc || '') + ' ' + (i.long_desc || '') });
+  if (d.national) for (const e of ents) e.national = true;
   // inverse learnset + name aliases
   const learnedBy = {};
   for (const e of ents) if (e.kind === 'species') for (const mv of e.learnset) (learnedBy[mv] ||= []).push(e);
@@ -62,8 +63,20 @@ function buildIndex(d) {
   // move type and carry no condition. immunity -> 0, final_mult -> its factor. Levitate, Thick Fat, Flash Fire, Fluffy...
   const abilityTypeMod = {};
   for (const r of d.ability_effects || []) { if (r.side !== 'defender' || !r.move_type || r.condition) continue; if (r.effect_kind !== 'immunity' && r.effect_kind !== 'final_mult') continue; (abilityTypeMod[r.ability_slug] ||= {})[r.move_type] = r.effect_kind === 'immunity' ? 0 : Number(r.value); }
-  return { ents, types, learnedBy, moveBySlug, abilityBySlug, speciesBySlug, itemCats, classes, regs, regRank, currentReg, abilityTypeMod, meta: { regulation: d.regulation, data_revision: d.data_revision, data_version: d.data_version } };
+  return { national: !!d.national, ents, types, learnedBy, moveBySlug, abilityBySlug, speciesBySlug, itemCats, classes, regs, regRank, currentReg, abilityTypeMod, meta: { regulation: d.regulation, data_revision: d.data_revision, data_version: d.data_version } };
 }
+
+// National Dex (D-91): a separate index used only by the opt-in autocomplete and the national pages. Its rows come from
+// data/national.json (tools/build-national.cjs) and never mix with Champions rows; type chart and regulations are shared.
+let IDXC = null, IDXN = null, CORE = null, NAT_P = null, NAT_ERR = null;
+const natOn = () => { try { return localStorage.getItem('vgcdex-national') === 'on'; } catch (e) { return false; } };
+function nationalData(core, n) { const art = r => ({ front: r.sprite, menu: r.sprite });
+  return Object.assign({}, core, { national: true, data_revision: n.data_revision, ability_effects: [], item_categories: ['Berry', 'Mega Stone', 'Other'],
+    species: n.species.map(r => Object.assign({}, r, { sprites: art(r), learnset: r.learnset.map(i => n.moves[i].slug) })),
+    mega_evolutions: n.mega_evolutions.map(r => Object.assign({}, r, { sprites: art(r) })), moves: n.moves, abilities: n.abilities,
+    items: n.items.map(r => Object.assign({}, r, { sprites: { item: r.sprite } })) }); }
+function loadNational() { if (!NAT_P) NAT_P = fetch('data/national.json').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  .then(n => { IDXN = buildIndex(nationalData(CORE, n)); }).catch(err => { NAT_ERR = err; NAT_P = null; throw err; }); return NAT_P; }
 
 // ---------- field registry ----------
 // type: enum | text | num | flag ; kinds: which entity kinds the field applies to
@@ -71,7 +84,7 @@ const F = {};
 function def(names, kinds, type, get, extra) { const f = Object.assign({ name: names[0], kinds, type, get }, extra || {}); for (const n of names) F[n] = f; }
 def(['t', 'type'], ['species', 'move'], 'enum', e => e.kind === 'species' ? e.types : [e.type], { values: 'types' });
 def(['a', 'ability'], ['species'], 'text', e => e.abilities);
-def(['m', 'move', 'learns'], ['species'], 'text', (e, idx) => e.learnset.map(s => idx.moveBySlug[s] ? idx.moveBySlug[s].name : s));
+def(['m', 'move', 'learns'], ['species'], 'text', (e, idx) => e._mn || (e._mn = e.learnset.map(s => idx.moveBySlug[s] ? idx.moveBySlug[s].name : s)));
 for (const k of STATS) def([k, k === 'spe' ? 'speed' : k === 'atk' ? 'attack' : k === 'def' ? 'defense' : k], ['species'], 'num', e => e.ps[k]);
 def(['total', 'stats'], ['species'], 'num', e => e.total);
 def(['dex', 'nat'], ['species'], 'num', e => e.dex);
@@ -205,7 +218,8 @@ function validate(node, idx, directives) {
 }
 
 // ---------- evaluation ----------
-function textHit(node, vals) { if (node.re) return vals.some(x => node.re.test(x)); if (node.op === '=' ) return vals.some(x => norm(x) === node.vn || compact(x) === node.vc); if (node.op === '!=') return !vals.some(x => norm(x) === node.vn); return vals.some(x => norm(x).includes(node.vn) || compact(x).includes(node.vc)); }
+const NC_MEMO = new Map(); const nc = x => { let v = NC_MEMO.get(x); if (!v) { v = [norm(x), compact(x)]; NC_MEMO.set(x, v); } return v; }
+function textHit(node, vals) { if (node.re) return vals.some(x => node.re.test(x)); if (node.op === '=' ) return vals.some(x => { const [n, c] = nc(x); return n === node.vn || c === node.vc; }); if (node.op === '!=') return !vals.some(x => nc(x)[0] === node.vn); return vals.some(x => { const [n, c] = nc(x); return n.includes(node.vn) || c.includes(node.vc); }); }
 function evalNode(node, e, idx) {
   switch (node.type) {
     case 'and': return node.items.every(it => evalNode(it, e, idx));
@@ -239,11 +253,14 @@ let AB_COUNT = null; const abilityCount = e => { if (!AB_COUNT) { AB_COUNT = {};
 ORDER_KEYS.count = e => e.kind === 'ability' ? abilityCount(e) : undefined;
 function sortEnts(out, order, dir) { const key = ORDER_KEYS[order], sgn = dir === 'asc' ? 1 : -1;
   return out.sort((a, b) => { const x = key(a), y = key(b); if (x === undefined && y === undefined) return 0; if (x === undefined) return 1; if (y === undefined) return -1; return (x < y ? -1 : x > y ? 1 : 0) * sgn || a.name.localeCompare(b.name); }); }
+const REG_FIELDS = ['r', 'new', 'banned', 'restricted', 'removed'];
 function search(idx, q) {
   const ast = parse(q); if (!ast) return { scope: KINDS, results: [], ast: null };
   const directives = {}; const scope = validate(ast, idx, directives);
   const abMatch = directives.matchups === 'abilities'; if (abMatch) idx = Object.assign(Object.create(idx), { abMatch: true });
-  const out = []; for (const e of idx.ents) if (scope.has(e.kind) && evalNode(ast, e, idx)) out.push(e);
+  let regTerm = false; (function walk(n) { if (!n) return; if (n.type === 'term' && F[n.field] && REG_FIELDS.includes(F[n.field].name)) regTerm = true; else if (n.items) n.items.forEach(walk); else if (n.node) walk(n.node); })(ast);
+  const cur = idx.currentReg, inReg = e => regTerm || !e.legality[cur] || e.legality[cur] === 'legal';
+  const out = []; for (const e of idx.ents) if (scope.has(e.kind) && inReg(e) && evalNode(ast, e, idx)) out.push(e);
   const order = directives.order; let dir = directives.dir;
   if (order) { if (!ORDER_KEYS[order]) throw new QueryError('syntax', `order: must be one of ${Object.keys(ORDER_KEYS).join(', ')}`, [0, q.length]);
     dir = dir || naturalDir(order); sortEnts(out, order, dir); }
@@ -361,8 +378,8 @@ const ICON = `<svg viewBox="0 0 1024 1024" aria-hidden="true"><clipPath id="r"><
 const typeChip = t => `<span class="chip type-${t}">${t}</span>`;
 const catChip = c => `<span class="chip cat-${c}">${c}</span>`;
 const qlink = q => `?q=${encodeURIComponent(q)}`;
-const plink = e => `?${e.kind}=${encodeURIComponent(e.slug)}`;
-function state() { const p = new URLSearchParams(location.search); const o = { q: p.get('q') || '', view: p.get('view') || 'grid', guide: p.has('guide'), adv: p.has('adv') }; for (const k of KINDS) if (p.get(k)) o.detail = { kind: k, slug: p.get(k) }; return o; }
+const plink = e => `?${e.kind}=${encodeURIComponent(e.slug)}${e.national ? '&dex=national' : ''}`;
+function state() { const p = new URLSearchParams(location.search); const o = { q: p.get('q') || '', view: p.get('view') || 'grid', guide: p.has('guide'), adv: p.has('adv'), national: p.get('dex') === 'national' }; for (const k of KINDS) if (p.get(k)) o.detail = { kind: k, slug: p.get(k) }; return o; }
 function nav(qs, replace) { history[replace ? 'replaceState' : 'pushState'](null, '', qs || location.pathname); render(); scrollTop0(); }
 function setParam(k, v) { const p = new URLSearchParams(location.search); if (v == null || v === '') p.delete(k); else p.set(k, v); return '?' + p.toString(); }
 
@@ -405,14 +422,14 @@ function header(st) {
     <a class="brand" href="./" data-nav><span class="icon">${ICON}</span><span class="word">VGC Dex</span></a>
     ${compact ? `<form class="topsearch" id="form"><input id="q" type="search" value="${esc(st.q)}" placeholder="Search Pokémon, moves, abilities, items…" spellcheck="false" autocomplete="off" autocapitalize="off"><button type="submit" aria-label="Search">${NAV_ICON('M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4')}</button><div class="tok-menu mainmenu" id="mainmenu" hidden></div></form>` : ''}
     <button type="button" class="menubtn" id="menubtn" aria-label="Menu" aria-expanded="false" aria-controls="topmenu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-    <nav class="topmenu" id="topmenu" hidden>${NAV_LINKS('random3')}<button type="button" id="theme2">${NAV_ICON('M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 3v18 M12 7h3.5 M12 11h5 M12 15h4.5')}<span>Toggle Theme</span></button></nav>
-    <nav class="topnav"><a href="?adv=1" data-nav>Advanced</a><a href="?guide=1" data-nav>Syntax</a><a href="#" id="random">Random</a><span class="reg">${esc(IDX.meta.regulation.regulation)}</span><button id="theme" title="Toggle Theme" aria-label="Toggle theme">${NAV_ICON('M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 3v18 M12 7h3.5 M12 11h5 M12 15h4.5')}</button></nav>
+    <nav class="topmenu" id="topmenu" hidden>${NAV_LINKS('random3')}<button type="button" id="theme2">${NAV_ICON('M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 3v18 M12 7h3.5 M12 11h5 M12 15h4.5')}<span>Toggle Theme</span></button><button type="button" id="natdex2" aria-pressed="${natOn()}">${NAV_ICON('M4 5h7a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z M20 5h-5a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h5z')}<span>National Dex: ${natOn() ? 'On' : 'Off'}</span></button></nav>
+    <nav class="topnav"><a href="?adv=1" data-nav>Advanced</a><a href="?guide=1" data-nav>Syntax</a><a href="#" id="random">Random</a><span class="reg">${esc(IDX.meta.regulation.regulation)}</span><button type="button" id="natdex" class="natbtn" aria-pressed="${natOn()}" title="Show National Dex names in search suggestions">National Dex</button><button id="theme" title="Toggle Theme" aria-label="Toggle theme">${NAV_ICON('M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 3v18 M12 7h3.5 M12 11h5 M12 15h4.5')}</button></nav>
   </div></header>`;
 }
 function footer() { const m = { regulation: REGMETA() }; return `<footer class="foot"><div class="wrap foot-col">
   <div class="foot-brand"><b>VGC Dex</b><br>A regex search engine for Pokémon Champions.<br>Regulation ${esc(m.regulation.regulation)} · ${esc(m.regulation.active_from)} → ${esc(m.regulation.active_to)}<br><a class="gpe" href="https://georgiaplayevents.com/">Part of the GPE network of apps</a></div>
   <p class="foot-legal">VGC Dex is fan content. The literal and graphical information presented on this site about Pokémon, including images and symbols, is copyright Nintendo, Creatures Inc., GAME FREAK, The Pokémon Company, and The Pokémon Company International (TPCi). VGC Dex is not produced by, endorsed by, or affiliated with any of these companies.</p>
-  <p class="foot-legal">Sprites via Bulbagarden Archives and Serebii. Home page artwork via PokéAPI. Dex data via Pokémon Showdown.</p>
+  <p class="foot-legal">Sprites via Bulbagarden Archives, Serebii and Pokémon Showdown. Home page artwork via PokéAPI. Dex data via Pokémon Showdown.</p>
 </div></footer>`; }
 
 // ----- home -----
@@ -450,7 +467,7 @@ function sizeListCols() { if (!$('.list') && !$('.sphead') && !$('.icard')) retu
   const wmax = sel => Math.ceil(Math.max(...[...m.querySelectorAll(sel)].map(td => td.getBoundingClientRect().width)));
   const chips = [...m.querySelectorAll('td.type .chip')].map(c => c.getBoundingClientRect().width).sort((a, b) => b - a);
   const cellPad = m.querySelector('td.type').getBoundingClientRect().width - m.querySelector('td.type .chip').getBoundingClientRect().width;
-  LIST_COLS = { 'name-w': wmax('td.sp'), 'mname-w': wmax('td.mv'), 'aname-w': wmax('td.ab'), 'iname-w': wmax('td.it'), 'icats-w': wmax('td.icat'), 'type-w': Math.ceil(chips[0] + chips[1] + 4 + cellPad), 'type1-w': wmax('td.type'), 'cat-w': wmax('td.cat'), 'dual-w': wmax('.dual'), 'icat-w': Math.ceil(m.querySelector('#icw').getBoundingClientRect().width), 'icat-h': Math.ceil(m.querySelector('#ich').getBoundingClientRect().height) };
+  IDX._cols = LIST_COLS = { 'name-w': wmax('td.sp'), 'mname-w': wmax('td.mv'), 'aname-w': wmax('td.ab'), 'iname-w': wmax('td.it'), 'icats-w': wmax('td.icat'), 'type-w': Math.ceil(chips[0] + chips[1] + 4 + cellPad), 'type1-w': wmax('td.type'), 'cat-w': wmax('td.cat'), 'dual-w': wmax('.dual'), 'icat-w': Math.ceil(m.querySelector('#icw').getBoundingClientRect().width), 'icat-h': Math.ceil(m.querySelector('#ich').getBoundingClientRect().height) };
   m.remove(); apply();
   if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { LIST_COLS = null; sizeListCols(); }); }
 function moveTable(rows) { return `<div class="tablewrap"><table class="list moves"><thead><tr>${sortTh('Name', 'name', 'name')}${sortTh('Type', 'type', 'type')}${sortTh('Cat', 'cat', 'cat')}${sortTh('BP', 'bp', 'num')}${sortTh('Acc', 'acc', 'num')}${sortTh('PP', 'pp', 'num')}${sortTh('Prio', 'prio', 'num')}<th>Effect</th>${SUBS.length ? '<th>Learned by</th>' : ''}</tr></thead><tbody>${rows.map(e => `<tr><td class="name"><a href="${plink(e)}" data-nav>${esc(e.name)}</a></td><td class="type">${typeChip(e.type)}</td><td class="cat">${catChip(e.cat)}</td><td class="num">${e.bp || '-'}</td><td class="num">${e.acc ?? '-'}</td><td class="num">${e.pp}</td><td class="num">${e.prio > 0 ? '+' : ''}${e.prio}</td><td class="muted">${esc(e.raw.short_desc || '')}</td>${SUBS.length ? `<td>${matchLine(e)}</td>` : ''}</tr>`).join('')}</tbody></table></div>`; }
@@ -479,14 +496,30 @@ function results(st) {
   const h1 = `<h1 class="vh">Search results for ${esc(q)}</h1>`;
   const groups = {}; for (const e of r.results) (groups[e.kind] ||= []).push(e);
   let body = '';
-  for (const k of KINDS) { const rows = groups[k]; if (!rows) continue; const cap = rows;
-    let inner; if (k === 'species') inner = st.view === 'list' ? speciesTable(cap) : `<div class="sgrid">${cap.map(speciesCard).join('')}</div>`;
-    else if (k === 'move') inner = moveTable(cap); else if (k === 'ability') inner = abilityTable(cap); else inner = st.view === 'list' ? itemTable(cap) : `<div class="sgrid">${cap.map(itemCard).join('')}</div>`;
-    body += `<section class="wrap group"><h2>${KIND_LABEL[k]} <span class="muted">${rows.length}</span></h2>${inner}</section>`; }
+  for (const k of KINDS) { const rows = groups[k]; if (!rows) continue;
+    const draw = list => k === 'species' ? (st.view === 'list' ? speciesTable(list) : `<div class="sgrid">${list.map(speciesCard).join('')}</div>`)
+      : k === 'move' ? moveTable(list) : k === 'ability' ? abilityTable(list) : st.view === 'list' ? itemTable(list) : `<div class="sgrid">${list.map(itemCard).join('')}</div>`;
+    const n = Math.min(rows.length, Math.max(DRAW_FIRST, (POPPED && DRAWN.get(location.search + '|' + k)) || 0));
+    if (n < rows.length) DRAW.pending[k] = { rows, pos: n, draw };
+    body += `<section class="wrap group" data-kind="${k}"><h2>${KIND_LABEL[k]} <span class="muted">${rows.length}</span></h2>${draw(rows.slice(0, n))}${n < rows.length ? '<div class="drawmore" aria-hidden="true"></div>' : ''}</section>`; }
   return controls + h1 + body;
 }
 
+// Every result stays reachable (D-76); rows past the first screens are drawn as their placeholder nears the viewport (D-92).
+const DRAW_FIRST = 48, DRAW_STEP = 96, DRAWN = new Map(); let DRAW = { pending: {}, obs: null }, POPPED = false;
+function stopDraw() { if (DRAW.obs) DRAW.obs.disconnect(); DRAW = { pending: {}, obs: null }; }
+function drawMore(k) { const p = DRAW.pending[k], sec = document.querySelector(`.group[data-kind="${k}"]`); if (!p || !sec) return;
+  const chunk = p.rows.slice(p.pos, p.pos + DRAW_STEP); p.pos += chunk.length; DRAWN.set(location.search + '|' + k, p.pos);
+  const t = document.createElement('template'); t.innerHTML = p.draw(chunk); sec.querySelector('tbody, .sgrid').append(...t.content.querySelector('tbody, .sgrid').childNodes);
+  const mark = sec.querySelector('.drawmore'); if (p.pos >= p.rows.length) { delete DRAW.pending[k]; if (mark) { if (DRAW.obs) DRAW.obs.unobserve(mark); mark.remove(); } return; }
+  if (DRAW.obs && mark) { DRAW.obs.unobserve(mark); DRAW.obs.observe(mark); } }
+function startDraw() { const ks = Object.keys(DRAW.pending); if (!ks.length) return;
+  if (!('IntersectionObserver' in window)) { for (const k of ks) while (DRAW.pending[k]) drawMore(k); return; }
+  DRAW.obs = new IntersectionObserver(es => { for (const en of es) if (en.isIntersecting) drawMore(en.target.closest('.group').dataset.kind); }, { rootMargin: '1500px 0px' });
+  for (const k of ks) { const m = document.querySelector(`.group[data-kind="${k}"] .drawmore`); if (m) DRAW.obs.observe(m); } }
+
 // ----- detail pages -----
+const NAT_LI = e => e.national ? '<li>National Dex, not in Champions</li>' : `<li><a href="${qlink('new:' + e.reg.toLowerCase())}" data-nav>since ${esc(e.reg)}</a></li>`;
 function effChips(e) { const w = IDX.types.filter(t => e.eff[t] >= 2), rs = IDX.types.filter(t => e.eff[t] > 0 && e.eff[t] < 1), im = IDX.types.filter(t => e.eff[t] === 0);
   const f = (ts, mark) => ts.map(t => `<a href="${qlink(mark + ':' + t)}" data-nav>${typeChip(t)}${e.eff[t] === 4 ? '<sup>×4</sup>' : e.eff[t] === 0.25 ? '<sup>×¼</sup>' : ''}</a>`).join(' ') || '<span class="muted">-</span>';
   return `<dl class="eff"><dt>Weak</dt><dd>${f(w, 'weak')}</dd><dt>Resists</dt><dd>${f(rs, 'resists')}</dd><dt>Immune</dt><dd>${f(im, 'immune')}</dd></dl>${abilityEffLines(e)}`; }
@@ -505,12 +538,12 @@ function detail(d) {
     const megas = IDX.ents.filter(x => x.is_mega && x.base_slug === e.slug);
     const sibMegas = e.is_mega ? IDX.ents.filter(x => x.is_mega && x.base_slug === e.base_slug && x !== e) : [];
     // variants: the other non-Mega Pokémon sharing this National Dex number (regional formes, Rotom, Tauros…)
-    const variants = e.is_mega || e.dex == null ? [] : IDX.ents.filter(x => x.kind === 'species' && !x.is_mega && x.dex === e.dex && x !== e); const base = e.base_slug && IDX.speciesBySlug[e.base_slug];
+    const variants = e.is_mega || e.dex == null ? [] : IDX.ents.filter(x => x.kind === 'species' && !x.is_mega && x.dex === e.dex && x !== e); const base = e.base_slug && (IDX.speciesBySlug[e.base_slug] || (IDX.national && IDXC.speciesBySlug[e.base_slug]));
     const p = new URLSearchParams(location.search); const so = ORDER_KEYS[p.get('sort')] ? p.get('sort') : 'name'; const sd = ['asc', 'desc'].includes(p.get('dir')) ? p.get('dir') : naturalDir(so);
     const moves = sortEnts(e.learnset.map(s => IDX.moveBySlug[s]).filter(Boolean), so, sd);
     SUBS = []; SORT = { order: so, dir: sd, link: (k, d) => `${plink(e)}&sort=${k}${d ? '&dir=' + d : ''}#learnset` };
     return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><h1>${esc(e.name)}${e.is_mega ? ' <span class="badge megab">Mega</span>' : ''}</h1><div class="sphead"><div class="spinfo"><div class="chips big">${e.types.map(typeChip).join('')}</div>
-      <ul class="spmeta muted"><li>#${e.dex ?? '-'}</li><li>${e.kg} kg</li><li><a href="${qlink('new:' + e.reg.toLowerCase())}" data-nav>since ${esc(e.reg)}</a></li>${base ? `<li>Mega of <a href="${plink(base)}" data-nav>${esc(base.name)}</a></li>` : ''}${e.stone ? `<li>holds <b>${esc(IDX.ents.find(x => x.kind === 'item' && x.slug === e.stone)?.name || e.stone)}</b></li>` : ''}</ul></div>
+      <ul class="spmeta muted"><li>#${e.dex ?? '-'}</li><li>${e.kg} kg</li>${NAT_LI(e)}${base ? `<li>Mega of <a href="${plink(base)}" data-nav>${esc(base.name)}</a></li>` : ''}${e.stone ? `<li>holds <b>${esc(IDX.ents.find(x => x.kind === 'item' && x.slug === e.stone)?.name || e.stone)}</b></li>` : ''}</ul></div>
       <div class="spart"><div class="artbox spbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div></div></div>
       <h3>Abilities</h3><ul class="plain">${e.abilitySlugs.map((s, i) => { const a = IDX.ents.find(x => x.kind === 'ability' && x.slug === s); return `<li><a href="${a ? plink(a) : '#'}" data-nav><b>${esc(e.abilities[i])}</b></a> <span class="muted">${esc(a ? a.raw.short_desc || '' : '')}</span></li>`; }).join('')}</ul>
       <h3>Stats</h3>${statTable(e)}<h3>Defensive matchups</h3>${effChips(e)}
@@ -526,7 +559,7 @@ function detail(d) {
     return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><h1>${esc(e.name)}</h1><p>${esc(e.raw.long_desc || e.raw.short_desc || '')}</p><h3>Pokémon <span class="muted">${holders.length}</span></h3><div class="sgrid">${holders.map(speciesCard).join('')}</div></div></div></section>`; }
   const megaFor = IDX.ents.filter(x => x.is_mega && x.stone === e.slug);
   return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><h1>${esc(e.name)}</h1><div class="sphead"><div class="spinfo"><div class="chips big">${e.cats.map(c => `<span class="chip neutral">${esc(c)}</span>`).join('')}</div>
-      <ul class="spmeta muted"><li><a href="${qlink('new:' + e.reg.toLowerCase())}" data-nav>since ${esc(e.reg)}</a></li></ul></div>
+      <ul class="spmeta muted">${NAT_LI(e)}</ul></div>
       <div class="spart"><div class="artbox spbox">${e.sprite ? `<img src="${e.sprite}" alt="${esc(e.name)}">` : ''}</div></div></div>
       <p>${esc(e.raw.long_desc || e.raw.description || '')}</p>${megaFor.length ? `<h3>Mega Evolution</h3><div class="sgrid">${megaFor.map(speciesCard).join('')}</div>` : ''}</div></div></section>`;
 }
@@ -690,7 +723,10 @@ function subRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial); 
   return null; }
 let MENU_INPUT_KEY = null;
 function mainRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial); const f = x => { const pre = x.filter(([v]) => q && (norm(v).startsWith(q) || compact(v).startsWith(qc))); const rest = x.filter(([v, l]) => !pre.includes(x.find(y => y[0] === v)) && (!q || norm(l).includes(q))); return q ? pre.concat(rest) : x; };
-  if (!ctx.field) { const rows = []; let names = []; if (ctx.partial.length >= 2) names = IDX.ents.filter(e => e.norm.startsWith(q) || e.compact.startsWith(qc)).map(e => [quote(e.name), KIND_LABEL[e.kind]]); const fields = f(MAIN_FIELDS); return { group: names.length ? 'Names' : 'Fields', rows: names.concat(fields.map(([v, l]) => [v, l])), groups: names.length, pills: false }; }
+  if (!ctx.field) { const rows = []; let names = []; if (ctx.partial.length >= 2) { const hit = e => e.norm.startsWith(q) || e.compact.startsWith(qc); names = IDX.ents.filter(hit).map(e => [quote(e.name), KIND_LABEL[e.kind]]);
+      if (!IDX.national && natOn()) { if (IDXN) { const have = new Set(IDX.ents.filter(hit).map(e => e.kind + e.norm)); names = names.concat(IDXN.ents.filter(e => hit(e) && !have.has(e.kind + e.norm)).slice(0, 20).map(e => ['@' + e.kind + ':' + e.slug, KIND_LABEL[e.kind] + ' · National Dex', e.name])); }
+        else loadNational().then(() => { if (MENU.key === 'main' && MENU.input && document.activeElement === MENU.input) openMainMenu(MENU.input); }, () => {}); } }
+    const fields = f(MAIN_FIELDS); return { group: names.length ? 'Names' : 'Fields', rows: names.concat(fields.map(([v, l]) => [v, l])), groups: names.length, pills: false }; }
   const fld = F[ctx.field] ? F[ctx.field].name : ctx.field; const types = f(IDX.types.map(t => [t, cap(t)]));
   if (['t', 'weak', 'xweak', 'resists', 'xresists', 'immune'].includes(fld)) return { group: 'Types', rows: types, pills: true };
   if (fld === 'a') return { group: 'Abilities', plain: true, rows: f(IDX.ents.filter(e => e.kind === 'ability').map(e => [quote(e.name), e.name])) };
@@ -709,12 +745,12 @@ function mainRows(ctx) { const q = norm(ctx.partial), qc = compact(ctx.partial);
   return null; }
 function openMainMenu(input) { const menu = $('#mainmenu'); if (!menu) return; const ctx = subContext(input); const sr = ctx && mainRows(ctx); if (!sr || !sr.rows.length) { menu.hidden = true; MENU = { key: null, rows: [], hi: -1 }; return; }
   MENU = { key: 'main', rows: sr.rows, hi: ctx.partial ? 0 : -1, input, menu, ctx };
-  let html = ''; sr.rows.forEach(([v, l], i) => { if (i === 0) html += `<div class="tok-menu-group">${esc(sr.group)}</div>`; if (sr.groups && i === sr.groups) html += `<div class="tok-menu-group">Fields</div>`; const isName = sr.groups && i < sr.groups; html += `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${sr.pills ? pill(v) : (sr.plain || isName) ? `${esc(isName ? v.replace(/^"|"$/g, '') : l)}${isName ? `<span class="muted kindlbl">${esc(l)}</span>` : ''}` : `<code>${esc(v)}</code> <span class="muted">${esc(l)}</span>`}</div>`; });
+  let html = ''; sr.rows.forEach(([v, l, nm], i) => { if (i === 0) html += `<div class="tok-menu-group">${esc(sr.group)}</div>`; if (sr.groups && i === sr.groups) html += `<div class="tok-menu-group">Fields</div>`; const isName = sr.groups && i < sr.groups; html += `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${sr.pills ? pill(v) : (sr.plain || isName) ? `${esc(isName ? nm || v.replace(/^"|"$/g, '') : l)}${isName ? `<span class="muted kindlbl">${esc(l)}</span>` : ''}` : `<code>${esc(v)}</code> <span class="muted">${esc(l)}</span>`}</div>`; });
   menu.innerHTML = html; menu.hidden = false; }
 function openSubMenu(input) { MENU_INPUT_KEY = input.dataset.tkin; const menu = input.closest('.tok-wrap').querySelector('.tok-menu'); const ctx = subContext(input); const sr = ctx && subRows(ctx); if (!sr || !sr.rows.length) { menu.hidden = true; MENU = { key: null, rows: [], hi: -1 }; return; }
   MENU = { key: 'sub', rows: sr.rows, hi: ctx.partial ? 0 : -1, input, menu, ctx };
   menu.innerHTML = `<div class="tok-menu-group">${esc(sr.group)}</div>` + sr.rows.map(([v, l], i) => `<div class="tok-menu-row ${i === MENU.hi ? 'hi' : ''}" data-pick="${esc(v)}" data-i="${i}">${sr.pills ? pill(v) : sr.plain ? esc(l) : `<code>${esc(v)}</code> <span class="muted">${esc(l)}</span>`}</div>`).join(''); menu.hidden = false; }
-function pickSub(input, v) { const ctx = MENU.ctx || subContext(input); const isField = !ctx.field; const insert = isField ? v : (ctx.field + ':' + v); const tail = input.value.slice(ctx.end); const needSpace = !isField && !/^\s/.test(tail) ; const nv = input.value.slice(0, ctx.start) + insert + (needSpace ? ' ' : '') + tail; input.value = nv; const pos = ctx.start + insert.length + (needSpace ? 1 : 0); const wasMain = MENU.key === 'main'; input.focus(); try { input.setSelectionRange(pos, pos); } catch (e) {} readForm(); if (isField && /[:=]$/.test(insert)) (wasMain ? openMainMenu : openSubMenu)(input); else closeMenu(); }
+function pickSub(input, v) { if (v.startsWith('@')) { const [k, sl] = v.slice(1).split(':'); closeMenu(); nav(`?${k}=${encodeURIComponent(sl)}&dex=national`); return; } const ctx = MENU.ctx || subContext(input); const isField = !ctx.field; const insert = isField ? v : (ctx.field + ':' + v); const tail = input.value.slice(ctx.end); const needSpace = !isField && !/^\s/.test(tail) ; const nv = input.value.slice(0, ctx.start) + insert + (needSpace ? ' ' : '') + tail; input.value = nv; const pos = ctx.start + insert.length + (needSpace ? 1 : 0); const wasMain = MENU.key === 'main'; input.focus(); try { input.setSelectionRange(pos, pos); } catch (e) {} readForm(); if (isField && /[:=]$/.test(insert)) (wasMain ? openMainMenu : openSubMenu)(input); else closeMenu(); }
 const looksExpr = v => /[:<>=\/()]/.test(v);
 function nudgeIntoView(input) { if (window.innerWidth > 700) return; setTimeout(() => { const r = input.getBoundingClientRect(); if (r.top > 140 || r.top < 0) (scroller() || window).scrollBy({ top: r.top - 90, behavior: 'smooth' }); }, 250); }
 function openMenu(input) { if (MENU_MUTE) return; nudgeIntoView(input); if (input.dataset.acsub || ((input.dataset.tkin === 'moves' || input.dataset.tkin === 'abilities') && looksExpr(input.value))) return openSubMenu(input); const key = input.dataset.tkin; const menu = input.closest('.tok-wrap').querySelector('.tok-menu'); const rows = menuRows(key, input.value); MENU = { key, rows, hi: rows.length && input.value ? 0 : -1, input, menu };
@@ -848,12 +884,17 @@ function bindForm() {
 // ----- render + events -----
 // home page handlers: search box and Random Mon work as soon as the page paints
 function bindHome() { const f = $('#form'); if (f && !f.dataset.bound) { f.dataset.bound = '1'; f.addEventListener('submit', ev => { ev.preventDefault(); const v = $('#q').value.trim(); if (v) nav(qlink(v)); }); }
-  const r = $('#random2'); if (r && !r.dataset.bound) { r.dataset.bound = '1'; r.addEventListener('click', ev => { ev.preventDefault(); if (!IDX) return; const sp = IDX.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); } }
+  const r = $('#random2'); if (r && !r.dataset.bound) { r.dataset.bound = '1'; r.addEventListener('click', ev => { ev.preventDefault(); if (!IDX) return; const sp = IDXC.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); } }
 function render() {
-  const st = state();
-  if (!IDX) { if (isHome(st)) { app.innerHTML = `<main>${home()}</main>` + footer(); placeHome(); bindHome(); return; } return; }
+  stopDraw(); const st = state();
+  if (!IDXC) { if (isHome(st)) { app.innerHTML = `<main>${home()}</main>` + footer(); placeHome(); bindHome(); return; } return; }
+  if (st.detail && st.national && !IDXN) { if (NAT_ERR) { const m = NAT_ERR.message; NAT_ERR = null; IDX = IDXC; app.innerHTML = header(st) + `<main class="wrap"><div class="notice error">Failed to load the National Dex: ${esc(m)}</div></main>` + footer(); return; }
+    app.innerHTML = `<main class="wrap"><p class="muted" style="padding:24px 0">Loading National Dex…</p></main>`; loadNational().then(render, render); return; }
+  // a national link to something Champions has (an old link, a shared name) opens the Champions page
+  const natHas = st.detail && st.national && IDXN.ents.some(x => x.kind === st.detail.kind && x.slug === st.detail.slug);
+  const next = natHas ? IDXN : IDXC; if (next !== IDX) { IDX = next; LIST_COLS = IDX._cols || null; AB_COUNT = null; }
   let body; if (st.detail) body = detail(st.detail); else if (st.guide) body = guide(); else if (st.q && !st.adv) body = results(st); else if (isHome(st)) body = home(); else { if (st.adv && st.q) { if (!FS || FS.src !== st.q) { FS = queryToForm(st.q); FS.src = st.q; FS.view = st.view; } } else if (!FS || FS.src) { FS = emptyForm(); } body = advForm(); }
-  app.innerHTML = (isHome(st) ? '' : header(st)) + `<main>${body}</main>` + footer(); sizeListCols(); placeHome(); sizeGuide(); LOADING_SHOWN = false;
+  app.innerHTML = (isHome(st) ? '' : header(st)) + `<main>${body}</main>` + footer(); sizeListCols(); placeHome(); sizeGuide(); startDraw(); LOADING_SHOWN = false;
   if (location.hash) { const tgt = document.getElementById(location.hash.slice(1)); if (tgt) setTimeout(() => tgt.scrollIntoView({ block: 'start' }), 0); }
   const SITE = 'VGC Dex Pokemon Champions Search'; document.title = st.detail ? `${IDX.ents.find(x => x.kind === st.detail.kind && x.slug === st.detail.slug)?.name || SITE} · VGC Dex` : st.q ? `${st.q} · VGC Dex` : SITE;
   bindForm();
@@ -865,16 +906,18 @@ function render() {
   const f = $('#form'); if (f) f.addEventListener('submit', ev => { ev.preventDefault(); const v = $('#q').value.trim(); nav(v ? qlink(v) + (st.view !== 'grid' ? '&view=' + st.view : '') : ''); });
   const sort = $('#sort'); if (sort) sort.addEventListener('change', () => { let q = stripOrder(st.q); if (sort.value) q += ' order:' + sort.value; nav(qlink(q) + (st.view !== 'grid' ? '&view=' + st.view : '')); });
   const mb = $('#menubtn'); if (mb) mb.addEventListener('click', () => { const m = $('#topmenu'); m.hidden = !m.hidden; mb.setAttribute('aria-expanded', String(!m.hidden)); });
-  for (const id of ['random', 'random2', 'random3']) { const el = $('#' + id); if (el) el.addEventListener('click', ev => { ev.preventDefault(); const sp = IDX.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); }
+  for (const id of ['random', 'random2', 'random3']) { const el = $('#' + id); if (el) el.addEventListener('click', ev => { ev.preventDefault(); const sp = IDXC.ents.filter(e => e.kind === 'species'); nav(plink(sp[Math.floor(Math.random() * sp.length)])); }); }
   const back = $('#back'); if (back) back.addEventListener('click', ev => { ev.preventDefault(); if (history.length > 1 && document.referrer !== '' || history.state === 'app') history.back(); else nav(''); });
+  for (const id of ['natdex', 'natdex2']) { const b = $('#' + id); if (b) b.addEventListener('click', () => { const on = !natOn(); try { localStorage.setItem('vgcdex-national', on ? 'on' : 'off'); } catch (e) {} if (on) loadNational().catch(() => {});
+    for (const x of ['natdex', 'natdex2']) { const el = $('#' + x); if (!el) continue; el.setAttribute('aria-pressed', String(on)); const sp = el.querySelector('span'); if (sp) sp.textContent = 'National Dex: ' + (on ? 'On' : 'Off'); } }); }
   for (const id of ['theme', 'theme2']) { const th = $('#' + id); if (th) th.addEventListener('click', () => { const cur = document.documentElement.dataset.theme || 'light'; const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('vgcdex-theme', nx); } catch (e) {} }); }
 }
 document.addEventListener('click', ev => { const a = ev.target.closest('a[data-nav]'); if (!a) return; const href = a.getAttribute('href'); if (!href || href.startsWith('#')) return; ev.preventDefault(); history.pushState('app', '', href === './' ? location.pathname : href); render(); if (!href.includes('#')) scrollTop0(); });
-window.addEventListener('popstate', render);
-window.VGCDEX = { search: q => search(IDX, q), parse, get idx() { return IDX; } };
+window.addEventListener('popstate', () => { POPPED = true; try { render(); } finally { POPPED = false; } });
+window.VGCDEX = { search: q => search(IDXC, q), parse, get idx() { return IDXC; }, get national() { return IDXN; } };
 let LOADING_SHOWN = false;
 render(); // paints the home page at once; other routes wait for the data
 setTimeout(() => { if (!IDX && !document.querySelector('#app main')) { LOADING_SHOWN = true; app.innerHTML = `<main class="wrap"><p class="muted" style="padding:24px 0">Loading data…</p></main>`; } }, 200);
-(window.VGCDEX_DATA || fetch('data/m-c.json').then(r => r.json())).then(d => { IDX = buildIndex(d); IDX_ITEM_CATS = d.item_categories.slice(); render(); })
+(window.VGCDEX_DATA || fetch('data/m-c.json').then(r => r.json())).then(d => { CORE = d; IDXC = IDX = buildIndex(d); IDX_ITEM_CATS = d.item_categories.slice(); render(); if (natOn()) loadNational().catch(() => {}); })
   .catch(err => { if (!isHome(state())) app.innerHTML = `<main class="wrap"><div class="notice error">Failed to load data: ${esc(err.message)}</div></main>`; });
 })();
