@@ -1,0 +1,38 @@
+{
+ "event": "2027 Louisville Pokémon VGC Regional Championships",
+ "event_id": "0000195",
+ "date": "2026-10-11",
+ "player": "Joseph Ugarte",
+ "team": [
+  {
+   "slug": "farigiraf",
+   "name": "Farigiraf",
+   "w": 198
+  },
+  {
+   "slug": "incineroar",
+   "name": "Incineroar",
+   "w": 232
+  },
+  {
+   "slug": "charizardmegay",
+   "name": "Charizard-Mega-Y",
+   "w": 513
+  },
+  {
+   "slug": "sylveon",
+   "name": "Sylveon",
+   "w": 308
+  },
+  {
+   "slug": "venusaur",
+   "name": "Venusaur",
+   "w": 540
+  },
+  {
+   "slug": "garchomp",
+   "name": "Garchomp",
+   "w": 402
+  }
+ ]
+}
