@@ -1,38 +1,38 @@
 {
- "event": "2027 Louisville Pokémon VGC Regional Championships",
- "event_id": "0000195",
- "date": "2026-10-11",
- "player": "Joseph Ugarte",
+ "event": "2027 Gdansk Pokémon VGC Regional Championships",
+ "event_id": "1000080",
+ "date": "2026-11-01",
+ "player": "Javier Varela",
  "team": [
   {
-   "slug": "farigiraf",
-   "name": "Farigiraf",
-   "w": 198
+   "slug": "gholdengo",
+   "name": "Gholdengo",
+   "w": 238
   },
   {
-   "slug": "incineroar",
-   "name": "Incineroar",
-   "w": 232
+   "slug": "excadrill",
+   "name": "Excadrill",
+   "w": 526
   },
   {
-   "slug": "charizardmegay",
-   "name": "Charizard-Mega-Y",
-   "w": 513
+   "slug": "tyranitarmega",
+   "name": "Tyranitar-Mega",
+   "w": 454
   },
   {
-   "slug": "sylveon",
-   "name": "Sylveon",
-   "w": 308
+   "slug": "staraptormega",
+   "name": "Staraptor-Mega",
+   "w": 352
   },
   {
-   "slug": "venusaur",
-   "name": "Venusaur",
-   "w": 540
+   "slug": "sinistcha",
+   "name": "Sinistcha",
+   "w": 293
   },
   {
-   "slug": "garchomp",
-   "name": "Garchomp",
-   "w": 402
+   "slug": "milotic",
+   "name": "Milotic",
+   "w": 404
   }
  ]
 }
