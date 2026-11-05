@@ -429,7 +429,7 @@ function header(st) {
 function footer() { const m = { regulation: REGMETA() }; return `<footer class="foot"><div class="wrap foot-col">
   <div class="foot-brand"><b>VGC Dex</b><br>A regex search engine for Pokémon Champions.<br>Regulation ${esc(m.regulation.regulation)} · ${esc(m.regulation.active_from)} → ${esc(m.regulation.active_to)}<br><a class="gpe" href="https://georgiaplayevents.com/">Part of the GPE network of apps</a></div>
   <p class="foot-legal">VGC Dex is fan content. The literal and graphical information presented on this site about Pokémon, including images and symbols, is copyright Nintendo, Creatures Inc., GAME FREAK, The Pokémon Company, and The Pokémon Company International (TPCi). VGC Dex is not produced by, endorsed by, or affiliated with any of these companies.</p>
-  <p class="foot-legal">Sprites via Bulbagarden Archives, Serebii and Pokémon Showdown. Home page artwork via PokéAPI. Dex data via Pokémon Showdown.</p>
+  <p class="foot-legal">Sprites via Bulbagarden Archives, Serebii, PokéAPI and Pokémon Showdown. Home page artwork via PokéAPI. Dex data via Pokémon Showdown.</p>
 </div></footer>`; }
 
 // ----- home -----
