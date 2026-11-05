@@ -1,0 +1,28 @@
+# Copied into the public site repo by prototype/deploy.sh (D-95). Edit the copy in the source repo.
+# Twice a week, show the Masters winner of the latest official VGC Regional on the home page.
+name: Home page team
+on:
+  schedule:
+    - cron: '17 14 * * 1,4'   # Monday and Thursday, 14:17 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: home-team
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet pillow==11.3.0
+      - run: python3 .github/scripts/update-home-team.py .
+      - name: Commit if the team changed
+        run: |
+          git add -A team index.html
+          if git diff --cached --quiet; then echo "no change"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Home page team: $(python3 -c 'import json;t=json.load(open("team/home-team.json"));print(t["event"])')"
+          git pull -q --rebase && git push -q

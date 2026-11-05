@@ -389,20 +389,29 @@ const ALL_ENTRIES = 'kind:species or kind:move or kind:ability or kind:item';
 const NAV_ICON = d => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
 // the four front-page links; the phone menu shows them with icons
 const NAV_LINKS = randomId => `<a href="?adv=1" data-nav>${NAV_ICON('M4 4h16v16H4z M4 9h16')}<span>Advanced Search</span></a><a href="?guide=1" data-nav>${NAV_ICON('M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14 M12 17.5v.01')}<span>Syntax Guide</span></a><a href="${qlink(ALL_ENTRIES)}" data-nav>${NAV_ICON('M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z')}<span>All Entries</span></a><a href="#" id="${randomId}">${NAV_ICON('M3 7h4l10 10h4 M3 17h4l3-3 M14 10l3-3h4 M18 4l3 3-3 3 M18 14l3 3-3 3')}<span>Random Mon</span></a>`;
-// Winning team of the latest regional championship, drawn across the bottom of the home
-// page. To swap: change this list and drop the matching WebP files in prototype/art/
-// (PokeAPI official artwork, trimmed and resized; see prototype/README.md).
-// row: back (3) or front (3); x is in units of the spacing, y in px below the baseline, rot in degrees
-const HOME_TEAM = [
-  { file: 'archaludon', slug: 'archaludon', w: 346, row: 'back', x: -1.24, y: 14, rot: -6 },
-  { file: 'pelipper', slug: 'pelipper', w: 409, row: 'front', x: -0.69, y: 80, rot: -3 },
-  { file: 'grimmsnarl', slug: 'grimmsnarl', w: 471, row: 'back', x: -0.14, y: 0, rot: -1 },
-  { file: 'charizard-mega-y', slug: 'charizardmegay', w: 513, row: 'front', x: 0.41, y: 74, rot: 2 },
-  { file: 'garchomp-mega-z', slug: 'garchompmegaz', w: 525, row: 'back', x: 0.96, y: 10, rot: 4 },
-  { file: 'venusaur', slug: 'venusaur', w: 540, row: 'front', x: 1.46, y: 84, rot: 6 },
+// Winning team of the latest regional championship, drawn across the bottom of the home page.
+// On the site, a GitHub Action (D-95, tools/update-home-team.py) stamps the latest Regional winner's
+// team into index.html as window.VGCDEX_TEAM, art in team/. Without it (local preview) the
+// built-in team below shows, art in prototype/art/ (PokeAPI official artwork; see prototype/README.md).
+// Slots: back (3) or front (3) row; x is in units of the spacing, y in px below the baseline, rot in degrees
+const TEAM_SLOTS = [
+  { row: 'back', x: -1.24, y: 14, rot: -6 }, { row: 'front', x: -0.69, y: 80, rot: -3 }, { row: 'back', x: -0.14, y: 0, rot: -1 },
+  { row: 'front', x: 0.41, y: 74, rot: 2 }, { row: 'back', x: 0.96, y: 10, rot: 4 }, { row: 'front', x: 1.46, y: 84, rot: 6 },
 ];
+const HOME_TEAM = ((window.VGCDEX_TEAM && window.VGCDEX_TEAM.team) || [
+  { file: 'art/archaludon', slug: 'archaludon', w: 346 }, { file: 'art/pelipper', slug: 'pelipper', w: 409 },
+  { file: 'art/grimmsnarl', slug: 'grimmsnarl', w: 471 }, { file: 'art/charizard-mega-y', slug: 'charizardmegay', w: 513 },
+  { file: 'art/garchomp-mega-z', slug: 'garchompmegaz', w: 525 }, { file: 'art/venusaur', slug: 'venusaur', w: 540 },
+]).slice(0, 6);
+// An automatic team: the three widest artworks take the front slots (which sit lower, so a large body
+// still shows) and the three narrowest the back slots between them, as in the hand-made layouts;
+// each row keeps the team's order left to right.
+{ const auto = !!(window.VGCDEX_TEAM && window.VGCDEX_TEAM.team), wide = new Set(HOME_TEAM.slice().sort((a, b) => b.w - a.w).slice(0, 3));
+  const back = TEAM_SLOTS.filter(s => s.row === 'back'), front = TEAM_SLOTS.filter(s => s.row === 'front');
+  HOME_TEAM.forEach((t, i) => Object.assign(t, auto ? (wide.has(t) ? front : back).shift() : TEAM_SLOTS[i], { file: t.file || 'team/' + t.slug })); }
+HOME_TEAM.sort((a, b) => a.x - b.x);
 function homeTeam() { const byName = {}; if (IDX) for (const e of IDX.ents) if (e.kind === 'species') byName[e.slug] = e.name;
-  return `<div class="hometeam">${HOME_TEAM.map(t => { const name = byName[t.slug] || ''; return `<a class="teamart ${t.row}" href="?species=${encodeURIComponent(t.slug)}" data-nav style="--x:${t.x};--y:${t.y}px;--rot:${t.rot}deg"><img src="art/${t.file}.webp" alt="${esc(name)}" width="${t.w}" height="420" decoding="async"></a>`; }).join('')}</div>`; }
+  return `<div class="hometeam">${HOME_TEAM.map(t => { const name = byName[t.slug] || ''; return `<a class="teamart ${t.row}" href="?species=${encodeURIComponent(t.slug)}" data-nav style="--x:${t.x};--y:${t.y}px;--rot:${t.rot}deg"><img src="${t.file}.webp" alt="${esc(name)}" width="${t.w}" height="420" decoding="async"></a>`; }).join('')}</div>`; }
 const REGMETA = () => (IDX ? IDX.meta.regulation : (window.VGCDEX_REG || { regulation: '', active_from: '', active_to: '' }));
 function home() { const reg = REGMETA().regulation;
   return `<section class="wrap home"><div class="home-in"><h1 class="tagline"><b>VGC Dex</b> is a powerful <br class="tlbr"><span class="tl2"><b>Pokémon Champions</b> search</span></h1>
