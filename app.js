@@ -537,7 +537,7 @@ const multLabel = x => x === 0 ? 'immune' : x === 0.25 ? '×¼' : x === 0.5 ? '�
 const effBucket = x => x === 0 ? 'immune' : x >= 4 ? 'xweak' : x >= 2 ? 'weak' : x <= 0.25 ? 'xresists' : x < 1 ? 'resists' : null;
 function abilityEffLines(e) { const lines = []; for (const sl of e.abilitySlugs) { const m = IDX.abilityTypeMod[sl]; if (!m) continue; const ab = IDX.abilityBySlug[sl]; const parts = Object.keys(m).filter(t => IDX.types.includes(t) && e.eff[t] > 0).map(t => { const x = e.eff[t] * m[t]; const b = effBucket(x); const chip = typeChip(t); return `${b ? `<a href="${qlink(b + ':' + t + ' matchups:abilities')}" data-nav>${chip}</a>` : chip} <span class="muted">${multLabel(x)} (chart ${multLabel(e.eff[t])})</span>`; }); if (parts.length) lines.push(`<p class="abeff"><b>With ${esc(ab ? ab.name : sl)}:</b> ${parts.join(' · ')}</p>`); }
   return lines.join(''); }
-function statTable(e) { const max = 250; return `<table class="stats"><tbody>${STATS.map(k => `<tr><th>${STAT_LABEL[k]}</th><td class="num">${e.ps[k]}</td><td class="bar"><i style="width:${Math.min(100, (e.ps[k] - (k === 'hp' ? 75 : 20)) / max * 100 * 1.6)}%"></i></td></tr>`).join('')}<tr class="tot"><th>Total</th><td class="num">${e.total}</td><td></td></tr></tbody></table>`; }
+function statTable(e) { const max = 250; return `<table class="stats"><tbody>${STATS.map(k => `<tr><th>${STAT_LABEL[k]}</th><td class="num">${e.ps[k]}</td><td class="bar"><i style="width:${Math.min(100, (e.ps[k] - (e.national ? 0 : k === 'hp' ? 75 : 20)) / max * 100 * 1.6)}%"></i></td></tr>`).join('')}<tr class="tot"><th>Total</th><td class="num">${e.total}</td><td></td></tr></tbody></table>`; }
 const TARGET_LABEL = { normal: 'One adjacent Pokémon', any: 'Any one other Pokémon', self: 'User', adjacentAlly: 'Ally', adjacentAllyOrSelf: 'User or ally', allies: 'User and ally', allyTeam: 'User and its party', allySide: "User's side", foeSide: "Foes' side", allAdjacentFoes: 'Both foes', allAdjacent: 'All adjacent Pokémon', all: 'Whole field', randomNormal: 'Random foe', scripted: 'Last Pokémon that hit the user' };
 function detail(d) {
   const e = IDX.ents.find(x => x.kind === d.kind && x.slug === d.slug);
@@ -555,7 +555,7 @@ function detail(d) {
       <ul class="spmeta muted"><li>#${e.dex ?? '-'}</li><li>${e.kg} kg</li>${NAT_LI(e)}${base ? `<li>Mega of <a href="${plink(base)}" data-nav>${esc(base.name)}</a></li>` : ''}${e.stone ? `<li>holds <b>${esc(IDX.ents.find(x => x.kind === 'item' && x.slug === e.stone)?.name || e.stone)}</b></li>` : ''}</ul></div>
       <div class="spart"><div class="artbox spbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div></div></div>
       <h3>Abilities</h3><ul class="plain">${e.abilitySlugs.map((s, i) => { const a = IDX.ents.find(x => x.kind === 'ability' && x.slug === s); return `<li><a href="${a ? plink(a) : '#'}" data-nav><b>${esc(e.abilities[i])}</b></a> <span class="muted">${esc(a ? a.raw.short_desc || '' : '')}</span></li>`; }).join('')}</ul>
-      <h3>Stats</h3>${statTable(e)}<h3>Defensive matchups</h3>${effChips(e)}
+      <h3>${e.national ? 'Base stats' : 'Stats'}</h3>${statTable(e)}<h3>Defensive matchups</h3>${effChips(e)}
       ${variants.length ? `<h3>Variants</h3><div class="sgrid">${variants.map(speciesCard).join('')}</div>` : ''}
       ${sibMegas.length ? `<h3>Other Mega Evolutions</h3><div class="sgrid">${sibMegas.map(speciesCard).join('')}</div>` : ''}
       ${megas.length ? `<h3>Mega Evolutions</h3><div class="sgrid">${megas.map(speciesCard).join('')}</div>` : ''}
