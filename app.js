@@ -26,7 +26,7 @@ function buildIndex(d) {
     const row = { kind: 'species', slug: s.slug, name: s.name, raw: s, is_mega: false, types: s.types,
       abilities: s.abilities.map(a => a.name), abilitySlugs: s.abilities.map(a => a.slug), learnset: s.learnset || [],
       ps: s.presented_stats, total: STATS.reduce((n, k) => n + s.presented_stats[k], 0),
-      dex: s.national_dex, kg: s.weight_kg, sprite: s.sprites && s.sprites.menu, art: s.sprites && s.sprites.front, eff: effOf(s.types), reg: d.national ? null : s.introduced_in || regs[0], legality: s.legality || {} };
+      dex: s.national_dex, kg: s.weight_kg || undefined, m: s.height_m, sprite: s.sprites && s.sprites.menu, art: s.sprites && s.sprites.front, eff: effOf(s.types), reg: d.national ? null : s.introduced_in || regs[0], legality: s.legality || {} };
     speciesBySlug[s.slug] = row; ents.push(row);
   }
   for (const m of d.mega_evolutions) {
@@ -34,7 +34,7 @@ function buildIndex(d) {
     ents.push({ kind: 'species', slug: m.slug, name: m.name, raw: m, is_mega: true, base_slug: m.base_slug, stone: m.mega_stone,
       types: m.types, abilities: [m.ability.name], abilitySlugs: [m.ability.slug], learnset: base ? base.learnset : [],
       ps: m.presented_stats, total: STATS.reduce((n, k) => n + m.presented_stats[k], 0),
-      dex: base ? base.dex : null, kg: m.weight_kg, sprite: m.sprites && m.sprites.menu, art: m.sprites && m.sprites.front, eff: effOf(m.types), reg: d.national ? null : m.introduced_in || regs[0], legality: m.legality || {} });
+      dex: base ? base.dex : null, kg: m.weight_kg || undefined, m: m.height_m, sprite: m.sprites && m.sprites.menu, art: m.sprites && m.sprites.front, eff: effOf(m.types), reg: d.national ? null : m.introduced_in || regs[0], legality: m.legality || {} });
   }
   const abilityBySlug = {};
   const moveBySlug = {};
@@ -589,7 +589,7 @@ function detail(d) {
     const moves = sortEnts(e.learnset.map(s => IDX.moveBySlug[s]).filter(Boolean), so, sd);
     SUBS = []; SORT = { order: so, dir: sd, link: (k, d) => `${plink(e)}&sort=${k}${d ? '&dir=' + d : ''}#learnset` };
     return `<section class="wrap page">${back}<div class="page-grid"><div class="page-main"><h1>${esc(e.name)}${e.is_mega ? ' <span class="badge megab">Mega</span>' : ''}</h1><div class="sphead"><div class="spinfo"><div class="chips big">${e.types.map(typeChip).join('')}</div>
-      <ul class="spmeta muted"><li>#${e.dex ?? '-'}</li><li>${e.kg} kg</li>${NAT_LI(e)}${base ? `<li>Mega of <a href="${plink(base)}" data-nav>${esc(base.name)}</a></li>` : ''}${e.stone ? `<li>holds <b>${esc(IDX.ents.find(x => x.kind === 'item' && x.slug === e.stone)?.name || e.stone)}</b></li>` : ''}</ul></div>
+      <ul class="spmeta muted"><li>#${e.dex ?? '-'}</li>${e.m ? `<li>${e.m} m</li>` : ''}${e.kg ? `<li>${e.kg} kg</li>` : ''}${NAT_LI(e)}${base ? `<li>Mega of <a href="${plink(base)}" data-nav>${esc(base.name)}</a></li>` : ''}${e.stone ? `<li>holds <b>${esc(IDX.ents.find(x => x.kind === 'item' && x.slug === e.stone)?.name || e.stone)}</b></li>` : ''}</ul></div>
       <div class="spart"><div class="artbox spbox">${e.art ? `<img src="${e.art}" alt="${esc(e.name)}">` : ''}</div></div></div>
       <h3>Abilities</h3><ul class="plain">${e.abilitySlugs.map((s, i) => { const a = IDX.ents.find(x => x.kind === 'ability' && x.slug === s); return `<li><a href="${a ? plink(a) : '#'}" data-nav><b>${esc(e.abilities[i])}</b></a> <span class="muted">${esc(a ? a.raw.short_desc || '' : '')}</span></li>`; }).join('')}</ul>
       <h3>${e.national ? 'Base stats' : 'Stats'}</h3>${statTable(e)}<h3>Defensive matchups</h3>${effChips(e)}
