@@ -262,8 +262,12 @@ const REG_FIELDS = ['r', 'new', 'banned', 'restricted', 'removed'];
 function search(idx, q) {
   const ast = parse(q); if (!ast) return { scope: KINDS, results: [], ast: null };
   const directives = {}; const scope = validate(ast, idx, directives);
-  { const top = ast.type === 'and' ? ast.items : [ast]; for (const t of top) if (t.type === 'term' && t.dexdir) t.dexTop = true;
-    (function walk(n) { if (!n) return; if (n.type === 'term' && n.dexdir && !n.dexTop) throw new QueryError('syntax', 'dex:national, dex:all and dex:champions go at the top level, not inside -, or, or ( )', n.span); if (n.sub) walk(n.sub); if (n.items) n.items.forEach(walk); if (n.node) walk(n.node); })(ast); }
+  // dex: modes apply to the whole search wherever they sit, like order: (D-97), but not under -, inside a sub-query,
+  // or as a whole side of an or (there a bare dex:all would match everything)
+  (function walk(n, neg, sub, orSide) { if (!n) return;
+    if (n.type === 'term' && n.dexdir) { const why = neg ? 'can\'t be negated (use dex:champions or dex:national)' : sub ? 'applies to the whole search, not inside a sub-query' : orSide ? 'applies to the whole search, so it can\'t be one side of an or' : '';
+      if (why) throw new QueryError('syntax', `dex:${norm(n.val)} ${why}`, n.span); return; }
+    if (n.sub) walk(n.sub, neg, true, false); if (n.items) n.items.forEach(x => walk(x, neg, sub, n.type === 'or')); if (n.node) walk(n.node, !neg, sub, false); })(ast, false, false, false);
   const abMatch = directives.matchups === 'abilities'; if (abMatch) idx = Object.assign(Object.create(idx), { abMatch: true });
   let regTerm = false; (function walk(n) { if (!n) return; if (n.type === 'term' && F[n.field] && REG_FIELDS.includes(F[n.field].name)) regTerm = true; else if (n.items) n.items.forEach(walk); else if (n.node) walk(n.node); })(ast);
   const cur = idx.currentReg, inReg = e => regTerm || !e.legality[cur] || e.legality[cur] === 'legal';
@@ -301,7 +305,9 @@ function explainQuery(node, { single = false, omitKind = null, abMatch = false, 
     // Directives evaluate to true even inside OR. An empty description means true.
     if (node.type === 'or' && parts.some(p => !p.text)) return '';
     const kept = parts.filter(p => p.text);
-    return summaryList(kept.map(({n, text}) => kept.length > 1 && (n.type === 'and' || n.type === 'or') ? `(${text})` : text), node.type === 'or' ? 'or' : 'and');
+    // a group left with one described term (t:water dex:all) needs no brackets
+    const shown = n => n.items.filter(x => !(x.type === 'term' && (x.dexdir || (F[x.field] && F[x.field].type === 'directive')))).length;
+    return summaryList(kept.map(({n, text}) => kept.length > 1 && (n.type === 'and' || n.type === 'or') && shown(n) > 1 ? `(${text})` : text), node.type === 'or' ? 'or' : 'and');
   }
   if (node.type === 'not') {
     const text = explainQuery(node.node, opts);
