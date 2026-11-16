@@ -73,7 +73,7 @@ let IDXC = null, IDXN = null, CORE = null, NAT_P = null, NAT_ERR = null;
 const ixOf = e => e && e.national && IDXN ? IDXN : (IDXC || IDX);
 const natOn = () => { try { return localStorage.getItem('vgcdex-national') === 'on'; } catch (e) { return false; } };
 function nationalData(core, n) { const art = r => ({ front: r.sprite, menu: r.sprite });
-  return Object.assign({}, core, { national: true, data_revision: n.data_revision, ability_effects: [], item_categories: ['Berry', 'Mega Stone', 'Other'],
+  return Object.assign({}, core, { national: true, data_revision: n.data_revision, ability_effects: [], item_categories: ['Berry', 'Mega Stone', 'Other', 'Pokeball', 'Technical Record'],
     species: n.species.map(r => Object.assign({}, r, { sprites: art(r), learnset: r.learnset.map(i => n.moves[i].slug) })),
     mega_evolutions: n.mega_evolutions.map(r => Object.assign({}, r, { sprites: art(r) })), moves: n.moves, abilities: n.abilities,
     items: n.items.map(r => Object.assign({}, r, { sprites: { item: r.sprite } })) }); }
@@ -282,11 +282,16 @@ function search(idx, q) {
 }
 // dex:national / dex:all (D-96): the same query on the National Dex index, its rows kept apart from the Champions ones.
 // A name Champions also has (Protect, Leftovers) shows only the Champions row. A query the National Dex can't run
-// (a Champions-only item category) gives natErr instead of rows.
+// (a Champions-only item category) gives natErr instead of rows; one Champions can't run (a National-only category
+// such as Pokeball) gives no Champions rows when it says dex:all or dex:national.
 const DEX_MODES = ['champions', 'national', 'all'];
+// the dex: mode a query asks for, without running it (the Champions index may not know all its terms)
+function queryDexMode(q) { let m = 'champions'; (function walk(n) { if (!n) return; if (n.type === 'term' && F[n.field] && F[n.field].name === 'dex' && n.op === ':' && !n.isRegex && DEX_MODES.includes(norm(n.val))) m = norm(n.val); if (n.items) n.items.forEach(walk); if (n.node) walk(n.node); })(parse(q)); return m; }
 function dexSearch(idxC, idxN, q) {
-  const c = search(idxC, q); if (!idxN) return { c, n: null, natErr: null, mode: c.dex };
+  let c = null, cErr = null; try { c = search(idxC, q); } catch (e) { if (!(e instanceof QueryError)) throw e; cErr = e; }
+  if (!idxN) { if (cErr) throw cErr; return { c, n: null, natErr: null, mode: c.dex }; }
   let n = null, natErr = null; try { n = search(idxN, q); } catch (e) { if (!(e instanceof QueryError)) throw e; natErr = e; }
+  if (cErr) { if (!n || n.dex === 'champions') throw cErr; c = Object.assign({}, n, { results: [], idx: idxC }); }
   if (n) { const have = idxC._names || (idxC._names = new Set(idxC.ents.map(e => e.kind + ':' + e.compact))); n.results = n.results.filter(e => !have.has(e.kind + ':' + e.compact)); }
   return { c, n, natErr, mode: c.dex };
 }
@@ -514,7 +519,7 @@ const SORTS = [['', 'Relevance'], ['name', 'Name'], ['dex', 'Dex #'], ['hp', 'HP
 function withoutKind(q) { let ast; try { ast = parse(q); } catch (e) { return null; } if (!ast) return null; const items = ast.type === 'and' ? ast.items : [ast]; const isKind = it => (it.type === 'term' && F[it.field] && F[it.field].name === 'kind') || (it.type === 'or' && it.items.every(x => x.type === 'term' && F[x.field] && F[x.field].name === 'kind')); if (!items.some(isKind)) return null; const rest = items.filter(it => !isKind(it)); return rest.length ? rest.map(astText).join(' ') : null; }
 function results(st) {
   const q = st.q; let r, ds;
-  try { r = search(IDXC, q); if (r.dex !== 'champions' || (natOn() && IDXN)) { if (!IDXN) return natLoading(); ds = dexSearch(IDXC, IDXN, q); r = ds.c; } }
+  try { if (queryDexMode(q) !== 'champions' || (natOn() && IDXN)) { if (!IDXN) return natLoading(); ds = dexSearch(IDXC, IDXN, q); r = ds.c; } else r = search(IDXC, q); }
   catch (err) { if (!(err instanceof QueryError)) throw err; const [s, e] = err.span || [0, 0];
     return `<section class="wrap"><div class="notice error"><b>${err.kind === 'syntax' ? 'Syntax error' : 'Scope error'}.</b> ${esc(err.message)}<pre><code>${esc(q.slice(0, s))}<mark>${esc(q.slice(s, e) || ' ')}</mark>${esc(q.slice(e))}</code></pre>${err.kind === 'semantic' ? '<p>Add <code>kind:species</code> or <code>kind:move</code>, or split it into two searches.</p>' : '<p>See the <a href="?guide=1" data-nav>syntax guide</a>.</p>'}<p><a href="${qlink(q).replace('?q=', '?adv=1&q=')}" data-nav>Edit in Advanced Search</a></p></div></section>`; }
   // D-96: dex:national shows only National Dex rows, dex:all adds them in their own section under the Champions ones
@@ -888,8 +893,8 @@ function ensureDupRow(kind) { const fs = FS; if (kind === 'regs') { if (!fs.regs
   const rows = fs[kind]; if (rows.some(r => r.val === '')) return; const r = { stat: kind === 'stats' ? 'spe' : 'bp', op: '>=', val: '' }; rows.push(r); $('#' + kind + '-rows').insertAdjacentHTML('beforeend', dupRow(kind, r, rows.length - 1, kind === 'stats' ? STAT_OPTS : MNUM_OPTS)); }
 function updatePreview() { if (!FS) return; const q = buildQuery(FS); const p = $('#qpreview'); if (p) p.textContent = q || ''; const go = $('#go'); if (go) go.disabled = !q; const c = $('#qcount'); if (c) { let txt = ''; if (q) { try { const n = dexCount(q); txt = n == null ? '' : n === 1 ? '1 result' : n + ' results'; } catch (e) { txt = e instanceof QueryError ? (e.kind === 'syntax' ? 'syntax error' : 'scope error') : ''; } } c.textContent = txt; } }
 // result count for a query, National Dex rows included when it says dex:all or dex:national; null while national.json loads
-function dexCount(q) { const r = search(IDXC, q); if (r.dex === 'champions') return r.results.length; if (!IDXN) { loadNational().then(updatePreview, () => {}); return null; }
-  const ds = dexSearch(IDXC, IDXN, q); const n = ds.n ? ds.n.results.length : 0; return r.dex === 'national' ? n : r.results.length + n; }
+function dexCount(q) { const mode = queryDexMode(q); if (mode === 'champions') return search(IDXC, q).results.length; if (!IDXN) { loadNational().then(updatePreview, () => {}); return null; }
+  const ds = dexSearch(IDXC, IDXN, q); const n = ds.n ? ds.n.results.length : 0; return mode === 'national' ? n : ds.c.results.length + n; }
 function submitForm() { readForm(); const skipped = flushTokens(); readForm(); const q = buildQuery(FS);
   if (!q) { const bar = $('#qcount'); if (bar && skipped.length) bar.innerHTML = `<span class="ignored">${ignoredLine(skipped)}</span>`; return; }
   IGNORED = skipped; nav(qlink(q) + (FS.view === 'list' ? '&view=list' : '')); }
